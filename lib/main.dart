@@ -28,6 +28,7 @@ import 'screens/modes/treasure_hunt_mode_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 import 'package:student_learning_app/screens/shop_tab.dart';
+import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
 
 /**
  * Main entry point for the EduQuest learning application.
@@ -3435,11 +3436,17 @@ class _LearnTabState extends State<LearnTab>
     super.build(context);
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: ThemeColors.getOverlayStyle(widget.currentTheme),
-      child: Scaffold(
-        body: Stack(
-          children: [
-            getBackgroundForTheme(widget.currentTheme),
-            SafeArea(
+      child: AtmosphericScaffold(
+        showGhost: false,
+        showFog: widget.currentTheme == 'halloween',
+        showEmbers: false,
+        intensity: AtmosphericIntensity.normal,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Stack(
+            children: [
+              getBackgroundForTheme(widget.currentTheme),
+              SafeArea(
               child: Column(
                 children: [
                   // Header with points
@@ -3587,6 +3594,7 @@ class _LearnTabState extends State<LearnTab>
               ),
             ),
           ],
+        ),
         ),
       ),
     );

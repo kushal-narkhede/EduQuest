@@ -2,6 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../helpers/database_helper.dart';
 import '../../main.dart' show getBackgroundForTheme, GameButton, ThemeColors;
+import '../../widgets/atmospheric/atmospheric.dart';
+import '../../widgets/atmospheric/glow_wrapper.dart';
+import '../../widgets/atmospheric/floating_wrapper.dart';
+import '../../widgets/atmospheric/dynamic_shadow_wrapper.dart';
+import '../../widgets/atmospheric/wisp_burst.dart';
+import '../../widgets/atmospheric/ghost_mascot.dart';
+import '../../widgets/atmospheric/atmospheric_theme_config.dart';
 
 class MemoryMasterModeScreen extends StatefulWidget {
   final String username;
@@ -30,6 +37,10 @@ class _MemoryMasterModeScreenState extends State<MemoryMasterModeScreen> {
   bool _showAnswer = false;
   int _score = 0;
   int _answeredCount = 0;
+  
+  // Wisp burst for correct answers
+  bool _showWispBurst = false;
+  Offset _wispBurstOrigin = Offset.zero;
 
   @override
   void initState() {
@@ -69,7 +80,15 @@ class _MemoryMasterModeScreenState extends State<MemoryMasterModeScreen> {
     setState(() {
       _selected = option;
       _showAnswer = true;
-      if (option == correct) _score += 10;
+      if (option == correct) {
+        _score += 10;
+        // Trigger wisp burst for correct answer
+        _showWispBurst = true;
+        _wispBurstOrigin = Offset(
+          MediaQuery.of(context).size.width / 2,
+          MediaQuery.of(context).size.height / 2,
+        );
+      }
     });
     Timer(const Duration(milliseconds: 900), () {
       if (!mounted) return;
@@ -121,62 +140,111 @@ class _MemoryMasterModeScreenState extends State<MemoryMasterModeScreen> {
     final q = _questions[_index];
     final options = (q['options'] as String).split('|');
     final correct = q['correct_answer'] as String;
+    
+    // Determine ghost state based on answer
+    GhostState ghostState = GhostState.idle;
+    if (_showAnswer && _selected != null) {
+      final isCorrect = _selected == correct;
+      ghostState = isCorrect ? GhostState.celebrating : GhostState.encouraging;
+    }
 
     return Scaffold(
-      body: Stack(
-        children: [
-          getBackgroundForTheme(widget.currentTheme),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Memory Master', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      Row(children: [
-                        const Icon(Icons.score, color: Colors.amber),
-                        const SizedBox(width: 6),
-                        Text('$_score', style: const TextStyle(color: Colors.white, fontSize: 18)),
-                      ]),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
+      body: AtmosphericScaffold(
+        showGhost: true,
+        showFog: true,
+        showEmbers: true,
+        intensity: AtmosphericIntensity.normal,
+        ghostState: ghostState,
+        ghostAlignment: Alignment.topRight,
+        autoHideGhost: true,
+        child: Stack(
+          children: [
+            getBackgroundForTheme(widget.currentTheme),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Memory Master', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Row(children: [
+                          const Icon(Icons.score, color: Colors.amber),
+                          const SizedBox(width: 6),
+                          Text('$_score', style: const TextStyle(color: Colors.white, fontSize: 18)),
+                        ]),
+                      ],
                     ),
-                    child: Text(
-                      _memorizePhase ? 'Memorize the answer...' : 'Choose the correct answer',
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    q['question_text'] as String,
-                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  for (final opt in options)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                      child: GameButton(
-                        text: opt,
-                        currentTheme: widget.currentTheme,
-                        isSelected: _selected == opt,
-                        isCorrect: _showAnswer ? (opt == correct) : null,
-                        onPressed: _memorizePhase ? null : () => _onSelect(opt),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _memorizePhase ? 'Memorize the answer...' : 'Choose the correct answer',
+                        style: const TextStyle(color: Colors.white70),
                       ),
                     ),
-                ],
+                    const SizedBox(height: 16),
+                    FloatingWrapper(
+                      amplitude: 6.0,
+                      duration: const Duration(seconds: 3),
+                      child: DynamicShadowWrapper(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            q['question_text'] as String,
+                            style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    for (final opt in options)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6.0),
+                        child: GlowWrapper(
+                          glowIntensity: _selected == opt ? 0.8 : 0.5,
+                          child: GameButton(
+                            text: opt,
+                            currentTheme: widget.currentTheme,
+                            isSelected: _selected == opt,
+                            isCorrect: _showAnswer ? (opt == correct) : null,
+                            onPressed: _memorizePhase ? null : () => _onSelect(opt),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
-          )
-        ],
+            // Wisp burst overlay for correct answers
+            if (_showWispBurst)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: WispBurst(
+                    origin: _wispBurstOrigin,
+                    particleCount: 25,
+                    onComplete: () {
+                      if (mounted) {
+                        setState(() {
+                          _showWispBurst = false;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

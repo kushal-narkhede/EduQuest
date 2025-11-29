@@ -3,6 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/questions.dart';
+import '../../widgets/atmospheric/atmospheric.dart';
+import '../../widgets/atmospheric/glow_wrapper.dart';
+import '../../widgets/atmospheric/floating_wrapper.dart';
+import '../../widgets/atmospheric/dynamic_shadow_wrapper.dart';
+import '../../widgets/atmospheric/wisp_burst.dart';
+import '../../widgets/atmospheric/ghost_mascot.dart';
+import '../../widgets/atmospheric/atmospheric_theme_config.dart';
 
 class PuzzleQuestScreen extends StatefulWidget {
   final List<Question> questions;
@@ -50,6 +57,10 @@ class _PuzzleQuestScreenState extends State<PuzzleQuestScreen>
   bool _fiftyFiftyUsed = false;
   bool _doublePointsActive = false;
   List<String> _removedOptions = [];
+  
+  // Wisp burst for correct answers
+  bool _showWispBurst = false;
+  Offset _wispBurstOrigin = Offset.zero;
 
   @override
   void initState() {
@@ -251,22 +262,48 @@ class _PuzzleQuestScreenState extends State<PuzzleQuestScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: _getBackgroundForTheme(widget.currentTheme),
-            ),
-            SafeArea(
-              child: _showScoreSummary
-                  ? _buildScoreSummary()
-                  : !_puzzleSolved
-                      ? _buildPuzzleScreen()
-                      : _buildQuestionScreen(),
-            ),
-          ],
+      body: AtmosphericScaffold(
+        showGhost: true,
+        showFog: true,
+        showEmbers: true,
+        intensity: AtmosphericIntensity.normal,
+        ghostState: GhostState.idle,
+        ghostAlignment: Alignment.topRight,
+        autoHideGhost: true,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: _getBackgroundForTheme(widget.currentTheme),
+              ),
+              SafeArea(
+                child: _showScoreSummary
+                    ? _buildScoreSummary()
+                    : !_puzzleSolved
+                        ? _buildPuzzleScreen()
+                        : _buildQuestionScreen(),
+              ),
+              // Wisp burst overlay for correct answers
+              if (_showWispBurst)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: WispBurst(
+                      origin: _wispBurstOrigin,
+                      particleCount: 25,
+                      onComplete: () {
+                        if (mounted) {
+                          setState(() {
+                            _showWispBurst = false;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

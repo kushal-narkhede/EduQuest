@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/questions.dart';
 import '../../helpers/database_helper.dart';
+import '../../widgets/atmospheric/atmospheric.dart';
+import '../../widgets/atmospheric/glow_wrapper.dart';
+import '../../widgets/atmospheric/floating_wrapper.dart';
+import '../../widgets/atmospheric/dynamic_shadow_wrapper.dart';
+import '../../widgets/atmospheric/wisp_burst.dart';
+import '../../widgets/atmospheric/ghost_mascot.dart';
+import '../../widgets/atmospheric/atmospheric_theme_config.dart';
 
 // Theme Colors Helper
 class ThemeColors {
@@ -169,6 +176,10 @@ class _LightningModeScreenState extends State<LightningModeScreen>
   int _currentStreak = 0;
   int _maxStreak = 0;
   bool _isOnFire = false; // 3+ streak
+  
+  // Wisp burst for correct answers
+  bool _showWispBurst = false;
+  Offset _wispBurstOrigin = Offset.zero;
 
   @override
   void initState() {
@@ -266,6 +277,15 @@ class _LightningModeScreenState extends State<LightningModeScreen>
         _pulseAnimationController.repeat(reverse: true);
       }
 
+      // Trigger wisp burst for correct answer
+      setState(() {
+        _showWispBurst = true;
+        _wispBurstOrigin = Offset(
+          MediaQuery.of(context).size.width / 2,
+          MediaQuery.of(context).size.height / 2,
+        );
+      });
+
       HapticFeedback.mediumImpact();
     } else {
       _currentStreak = 0;
@@ -362,21 +382,54 @@ class _LightningModeScreenState extends State<LightningModeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Determine ghost state based on answer
+    GhostState ghostState = GhostState.idle;
+    if (_showAnswer && _selectedAnswer != null) {
+      final isCorrect = _selectedAnswer == widget.questions[_currentQuestionIndex].correctAnswer;
+      ghostState = isCorrect ? GhostState.celebrating : GhostState.encouraging;
+    }
+
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: getBackgroundForTheme(widget.currentTheme),
-            ),
-            SafeArea(
-              child: _showScoreSummary
-                  ? _buildScoreSummary()
-                  : _buildQuizContent(),
-            ),
-          ],
+      body: AtmosphericScaffold(
+        showGhost: true,
+        showFog: true,
+        showEmbers: true,
+        intensity: AtmosphericIntensity.normal,
+        ghostState: ghostState,
+        ghostAlignment: Alignment.topRight,
+        autoHideGhost: true,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: getBackgroundForTheme(widget.currentTheme),
+              ),
+              SafeArea(
+                child: _showScoreSummary
+                    ? _buildScoreSummary()
+                    : _buildQuizContent(),
+              ),
+              // Wisp burst overlay for correct answers
+              if (_showWispBurst)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: WispBurst(
+                      origin: _wispBurstOrigin,
+                      particleCount: 25,
+                      onComplete: () {
+                        if (mounted) {
+                          setState(() {
+                            _showWispBurst = false;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -785,7 +838,10 @@ class _LightningModeScreenState extends State<LightningModeScreen>
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: AnimatedContainer(
+            child: GlowWrapper(
+              glowIntensity: isSelected ? 0.8 : 0.5,
+              pulseOnHover: true,
+              child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               decoration: BoxDecoration(
@@ -866,6 +922,7 @@ class _LightningModeScreenState extends State<LightningModeScreen>
                   ),
                 ),
               ),
+            ),
             ),
           );
         }).toList(),
@@ -1019,10 +1076,17 @@ class _LightningModeScreenState extends State<LightningModeScreen>
   }
 
   Widget _buildQuestionCard(Question question) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final double minHeight = MediaQuery.of(context).size.height * 0.12;
-        return Container(
+    return FloatingWrapper(
+      amplitude: 6.0,
+      duration: const Duration(seconds: 3),
+      phase: 0.0,
+      child: DynamicShadowWrapper(
+        restingElevation: 8.0,
+        pressedElevation: 2.0,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double minHeight = MediaQuery.of(context).size.height * 0.12;
+            return Container(
           margin: const EdgeInsets.symmetric(horizontal: 20),
           constraints: BoxConstraints(minHeight: minHeight),
           decoration: BoxDecoration(
@@ -1078,6 +1142,8 @@ class _LightningModeScreenState extends State<LightningModeScreen>
           ),
         );
       },
+        ),
+      ),
     );
   }
 

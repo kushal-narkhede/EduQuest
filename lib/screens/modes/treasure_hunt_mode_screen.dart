@@ -3,6 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../helpers/database_helper.dart';
 import '../../main.dart' show getBackgroundForTheme, GameButton;
+import '../../widgets/atmospheric/atmospheric.dart';
+import '../../widgets/atmospheric/glow_wrapper.dart';
+import '../../widgets/atmospheric/floating_wrapper.dart';
+import '../../widgets/atmospheric/dynamic_shadow_wrapper.dart';
+import '../../widgets/atmospheric/wisp_burst.dart';
+import '../../widgets/atmospheric/ghost_mascot.dart';
+import '../../widgets/atmospheric/atmospheric_theme_config.dart';
 
 class TreasureHuntModeScreen extends StatefulWidget {
   final String username;
@@ -39,6 +46,10 @@ class _TreasureHuntModeScreenState extends State<TreasureHuntModeScreen> {
   bool _loadingPowerups = true;
   Set<int> _hiddenOptionIdx = {}; // indices to hide for current question (50/50)
   bool _showChestGlow = false;
+  
+  // Wisp burst for correct answers
+  bool _showWispBurst = false;
+  Offset _wispBurstOrigin = Offset.zero;
 
   @override
   void initState() {
@@ -110,6 +121,12 @@ class _TreasureHuntModeScreenState extends State<TreasureHuntModeScreen> {
         _index = _index + 1; // do not wrap
         _hiddenOptionIdx.clear();
         _showChestGlow = true;
+        // Trigger wisp burst for correct answer
+        _showWispBurst = true;
+        _wispBurstOrigin = Offset(
+          MediaQuery.of(context).size.width / 2,
+          MediaQuery.of(context).size.height / 2,
+        );
       });
       // brief glow
       Future.delayed(const Duration(milliseconds: 450), () {
@@ -255,12 +272,23 @@ class _TreasureHuntModeScreenState extends State<TreasureHuntModeScreen> {
 
   final q = _questions[_index];
   final options = List<String>.from(q['shuffled_options'] as List);
+  
+  // Determine ghost state
+  GhostState ghostState = GhostState.idle;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          getBackgroundForTheme(widget.currentTheme),
-          SafeArea(
+      body: AtmosphericScaffold(
+        showGhost: true,
+        showFog: true,
+        showEmbers: true,
+        intensity: AtmosphericIntensity.normal,
+        ghostState: ghostState,
+        ghostAlignment: Alignment.topRight,
+        autoHideGhost: true,
+        child: Stack(
+          children: [
+            getBackgroundForTheme(widget.currentTheme),
+            SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -285,12 +313,15 @@ class _TreasureHuntModeScreenState extends State<TreasureHuntModeScreen> {
                     if (!_hiddenOptionIdx.contains(i))
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6.0),
-                        child: Opacity(
-                          opacity: _isProcessing ? 0.8 : 1,
-                          child: GameButton(
-                            text: options[i],
-                            currentTheme: widget.currentTheme,
-                            onPressed: _isProcessing ? null : () => _onSelect(options[i]),
+                        child: GlowWrapper(
+                          glowIntensity: 0.5,
+                          child: Opacity(
+                            opacity: _isProcessing ? 0.8 : 1,
+                            child: GameButton(
+                              text: options[i],
+                              currentTheme: widget.currentTheme,
+                              onPressed: _isProcessing ? null : () => _onSelect(options[i]),
+                            ),
                           ),
                         ),
                       ),
@@ -311,13 +342,31 @@ class _TreasureHuntModeScreenState extends State<TreasureHuntModeScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
-                      colors: [Colors.amber.withOpacity(0.4), Colors.transparent],
+                      colors: [Colors.amber.withValues(alpha: 0.4), Colors.transparent],
                     ),
                   ),
                 ),
               ),
             ),
+          // Wisp burst overlay for correct answers
+          if (_showWispBurst)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: WispBurst(
+                  origin: _wispBurstOrigin,
+                  particleCount: 25,
+                  onComplete: () {
+                    if (mounted) {
+                      setState(() {
+                        _showWispBurst = false;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
         ],
+        ),
       ),
     );
   }
