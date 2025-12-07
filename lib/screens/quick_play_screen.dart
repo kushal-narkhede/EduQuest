@@ -54,8 +54,8 @@ class _HomePageState extends State<HomePage> {
   bool showScoreSummary =
       false; // New variable to control score summary visibility
   bool isQuizActive = false; // New variable to track if quiz is active
-  String selectedSubject = "";
-  int numberOfQuestions = 1; // New variable for question count
+  Set<String> selectedSubjects = {}; // Support multiple subjects
+  int numberOfQuestions = 5; // New variable for question count
   File? _userProfileImage; // Add profile image state
 
   // Search functionality
@@ -895,24 +895,6 @@ class _HomePageState extends State<HomePage> {
             .where((subject) => subject.toLowerCase().contains(query))
             .toList();
         isSearching = true;
-
-        // Only auto-scroll if we have exactly one match or if the current selection doesn't match the search
-        if (filteredSubjects.isNotEmpty) {
-          final firstMatch = filteredSubjects.first;
-          final currentMatchesSearch =
-              selectedSubject.toLowerCase().contains(query);
-
-          // Only change if we have exactly one match or if current selection doesn't match
-          if (filteredSubjects.length == 1 || !currentMatchesSearch) {
-            selectedSubject = firstMatch;
-          }
-        } else {
-          // If no matches found, keep the current selection but ensure it's valid
-          if (!subjects.contains(selectedSubject)) {
-            selectedSubject =
-                subjects.isNotEmpty ? subjects.first : "Chemistry";
-          }
-        }
       }
     });
   }
@@ -1671,21 +1653,21 @@ class _HomePageState extends State<HomePage> {
       isQuizActive = true; // Set quiz as active
     });
 
-    print('Generating $numberOfQuestions questions for: $selectedSubject');
+    String subjectsList = selectedSubjects.join(', ');
+    print('Generating $numberOfQuestions questions for: $subjectsList');
 
     // Clear any previous questions and answers
     scienceQuestions.clear();
     answeredCorrectly.clear();
 
-    String prompt = """
-Generate exactly $numberOfQuestions multiple choice questions for $selectedSubject.
+    String prompt = """Generate exactly $numberOfQuestions multiple choice questions covering the topics of: $subjectsList.
 Format each question exactly like this: [question text, option A, option B, option C, option D, correct answer]
 Do not include any explanations or additional text, just the questions in this exact format and randomize the correct answer.
 Example format:
 [What is the chemical symbol for water?, H2O, CO2, NaCl, O2, H2O]
 [What is the capital of France?, London, Berlin, Paris, Madrid, Paris]
 
-Generate exactly $numberOfQuestions questions for $selectedSubject:
+Generate exactly $numberOfQuestions questions covering: $subjectsList
 """;
 
     _chatBloc.add(ChatGenerationNewTextMessageEvent(inputMessage: prompt));
@@ -1715,6 +1697,8 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
       showAnswer = false;
       answeredCorrectly = []; // Create a new empty list instead of clearing
       scienceQuestions.clear();
+      selectedSubjects.clear(); // Clear selected subjects
+      _searchController.clear();
     });
   }
 
@@ -1903,23 +1887,6 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header with free points button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Choose Your Subject',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
               // Beautiful Search Bar
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -1945,20 +1912,9 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                     ),
                   ],
                 ),
-                child: TextField(
-                  controller: _searchController,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Search for a subject...',
-                    hintStyle: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 16,
-                    ),
-                    prefixIcon: Container(
+                child: Row(
+                  children: [
+                    Container(
                       margin: const EdgeInsets.all(8),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -1976,23 +1932,85 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                         size: 20,
                       ),
                     ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear,
-                              color: Colors.white.withOpacity(0.7),
+                    Expanded(
+                      child: selectedSubjects.isNotEmpty
+                          ? SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  ...selectedSubjects.map((subject) => Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            const Color(0xFF667eea),
+                                            const Color(0xFF764ba2),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            subject,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          GestureDetector(
+                                            onTap: isQuizActive
+                                                ? null
+                                                : () {
+                                                    setState(() {
+                                                      selectedSubjects.remove(subject);
+                                                    });
+                                                  },
+                                            child: Icon(
+                                              Icons.close,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )),
+                                ],
+                              ),
+                            )
+                          : Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Search for a subject...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.white.withOpacity(0.6),
+                                    fontSize: 16,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 16,
+                                  ),
+                                ),
+                              ),
                             ),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
                     ),
-                  ),
+                  ],
                 ),
               ),
 
@@ -2002,7 +2020,7 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
               Opacity(
                 opacity: isQuizActive ? 0.5 : 1.0,
                 child: Container(
-                  height: 250,
+                  height: 150,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     gradient: LinearGradient(
@@ -2096,22 +2114,22 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                     ],
                   ),
                 ),
-              const SizedBox(height: 20),
-              const Text(
-                'Number of Questions',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               Opacity(
                 opacity: isQuizActive ? 0.5 : 1.0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Text(
+                      'Questions: ',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: isQuizActive
+                            ? Colors.white.withOpacity(0.5)
+                            : Colors.white,
+                      ),
+                    ),
                     IconButton(
                       onPressed: isQuizActive
                           ? null
@@ -2165,7 +2183,7 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
               // Points information
               Container(
                 padding:
@@ -2243,7 +2261,7 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: (isWaitingForQuestions || isQuizActive || selectedSubject.isEmpty)
+                  onPressed: (isWaitingForQuestions || isQuizActive || selectedSubjects.isEmpty)
                       ? null
                       : () {
                           _generateQuestions();
@@ -2288,7 +2306,7 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                                 color: Colors.white,
                               ),
                             )
-                          : selectedSubject.isEmpty
+                          : selectedSubjects.isEmpty
                           ? const Text(
                               'Select a Subject',
                               style: TextStyle(
@@ -2425,83 +2443,33 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
 
     return Column(
       children: [
-        // Selected subject indicator
-        if (selectedSubject.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  _gradients[
-                      subjects.indexOf(selectedSubject) % _gradients.length],
-                  _gradients[
-                          subjects.indexOf(selectedSubject) % _gradients.length]
-                      .withOpacity(0.7),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(25),
-              boxShadow: [
-                BoxShadow(
-                  color: _gradients[
-                          subjects.indexOf(selectedSubject) % _gradients.length]
-                      .withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _getIconForSubject(selectedSubject),
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    'Selected: $selectedSubject',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
         // Grid of subjects
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.all(12),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 1.0,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
+              childAspectRatio: 1.5,
             ),
             itemCount: availableSubjects.length,
             itemBuilder: (context, index) {
               final subject = availableSubjects[index];
-              final isSelected = subject == selectedSubject;
+              final isSelected = selectedSubjects.contains(subject);
               final gradientIndex =
                   subjects.indexOf(subject) % _gradients.length;
-              final subjectIcon = _getIconForSubject(subject);
 
               return GestureDetector(
                 onTap: isQuizActive
                     ? null
                     : () {
                         setState(() {
-                          selectedSubject = subject;
+                          if (selectedSubjects.contains(subject)) {
+                            selectedSubjects.remove(subject);
+                          } else {
+                            selectedSubjects.add(subject);
+                          }
                         });
                       },
                 child: AnimatedContainer(
@@ -2558,34 +2526,10 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Icon section with consistent sizing
-                        SizedBox(
-                          height: 36,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isSelected
-                                  ? Colors.white.withOpacity(0.2)
-                                  : Colors.transparent,
-                            ),
-                            child: Icon(
-                              subjectIcon,
-                              color: isSelected
-                                  ? Colors.white
-                                  : widget.currentTheme == 'beach'
-                                      ? ThemeColors.getTextColor('beach')
-                                      : Colors.white.withOpacity(0.8),
-                              size: 20, // Reduced size for smaller boxes
-                            ),
-                          ),
-                        ),
-
                         // Text section with proper constraints
                         Expanded(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -2597,11 +2541,11 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                                         : widget.currentTheme == 'beach'
                                             ? ThemeColors.getTextColor('beach')
                                             : Colors.white.withOpacity(0.9),
-                                    fontSize: 9,
+                                    fontSize: 11,
                                     fontWeight: isSelected
                                         ? FontWeight.bold
                                         : FontWeight.w500,
-                                    height: 1.1,
+                                    height: 1.2,
                                   ),
                                   textAlign: TextAlign.center,
                                   maxLines: 2,
@@ -2609,25 +2553,20 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
                                 ),
 
                                 // Check mark with fixed positioning
-                                SizedBox(
-                                  height: 16,
-                                  child: isSelected
-                                      ? Container(
-                                          margin: const EdgeInsets.only(top: 2),
-                                          padding: const EdgeInsets.all(2),
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color:
-                                                Colors.white.withOpacity(0.3),
-                                          ),
-                                          child: const Icon(
-                                            Icons.check,
-                                            color: Colors.white,
-                                            size: 10,
-                                          ),
-                                        )
-                                      : null,
-                                ),
+                                if (isSelected)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 4),
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withOpacity(0.3),
+                                    ),
+                                    child: const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 10,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -3338,9 +3277,10 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
   void _shareResults() {
     int correctAnswers = answeredCorrectly.where((correct) => correct).length;
     double accuracy = (correctAnswers / scienceQuestions.length) * 100;
+    String subjectsText = selectedSubjects.join(', ');
 
     String shareText =
-        "🎯 Just completed a ${selectedSubject} quiz on EduQuest!\n"
+        "🎯 Just completed a $subjectsText quiz on EduQuest!\n"
         "📊 Score: $correctAnswers/${scienceQuestions.length}\n"
         "📈 Accuracy: ${accuracy.toStringAsFixed(1)}%\n"
         "🔥 Challenge yourself with EduQuest and test your knowledge!";
@@ -3427,7 +3367,11 @@ Generate exactly $numberOfQuestions questions for $selectedSubject:
     return ElevatedButton(
       onPressed: () {
         setState(() {
-          selectedSubject = subject;
+          if (selectedSubjects.contains(subject)) {
+            selectedSubjects.remove(subject);
+          } else {
+            selectedSubjects.add(subject);
+          }
         });
         Navigator.of(context).pop();
       },

@@ -175,7 +175,10 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 3), () {
+    // Pre-warm the database in the background to avoid delays on first login
+    _warmUpDatabase();
+
+    Future.delayed(const Duration(seconds: 5), () {
       Navigator.pushReplacement(
         this.context,
         PageRouteBuilder(
@@ -195,6 +198,22 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       );
     });
+  }
+
+  /// Pre-initialize the database in the background to avoid blocking on first login.
+  /// This ensures all tables are created and premade study sets are loaded before
+  /// the user reaches the sign-in screen.
+  Future<void> _warmUpDatabase() async {
+    try {
+      final stopwatch = Stopwatch()..start();
+      print('DEBUG: Starting database pre-warm...');
+      final dbHelper = DatabaseHelper();
+      final _ = await dbHelper.database;
+      stopwatch.stop();
+      print('DEBUG: Database pre-warm completed in ${stopwatch.elapsedMilliseconds}ms');
+    } catch (e) {
+      print('DEBUG: Database pre-warm failed (non-critical): $e');
+    }
   }
 
   /**
@@ -220,54 +239,26 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E21),
-      // Use SafeArea to avoid system insets on devices with tall navigation bars
-      body: SafeArea(
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  // Constrain the splash icon with LayoutBuilder so it never
-                  // exceeds the visible area on devices with odd aspect ratios.
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/images/eduquest_logo.png',
-                            width: 150,
-                            height: 150,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'EduQuest',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Learn. Play. Grow.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/eduquest_logo.png',
+                      height: 150,
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -6068,7 +6059,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
 
       setState(() {
         _questions = shuffledQuestions;
-        _questionCount = _questions.isNotEmpty ? _questions.length : 1;
+        _questionCount = _questions.isNotEmpty 
+            ? (_questions.length < 5 ? _questions.length : 5) 
+            : 1;
         _isLoading = false;
       });
     } catch (e) {

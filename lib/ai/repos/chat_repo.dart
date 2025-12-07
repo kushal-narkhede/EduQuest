@@ -68,47 +68,59 @@ class ChatRepo {
         final data = response.data;
         if (data == null) {
           log('Response data is null');
+          print('ERROR: Response data is null');
           return '';
         }
+
+        // Log full response for debugging
+        print('Full API response: ${data.toString()}');
 
         final candidates = data['candidates'];
         if (candidates == null || candidates.isEmpty) {
           log('No candidates in response');
+          print('ERROR: No candidates in response. Full data: $data');
           return '';
         }
 
         final firstCandidate = candidates.first;
         if (firstCandidate == null) {
           log('First candidate is null');
+          print('ERROR: First candidate is null');
           return '';
         }
 
         final content = firstCandidate['content'];
         if (content == null) {
           log('Content is null');
+          print('ERROR: Content is null. Candidate: $firstCandidate');
           return '';
         }
 
         final parts = content['parts'];
         if (parts == null || parts.isEmpty) {
           log('No parts in content');
+          print('ERROR: No parts in content. Content: $content');
           return '';
         }
 
         final firstPart = parts.first;
         if (firstPart == null) {
           log('First part is null');
+          print('ERROR: First part is null');
           return '';
         }
 
         final text = firstPart['text'];
         if (text == null) {
           log('Text is null');
+          print('ERROR: Text is null. Part: $firstPart');
           return '';
         }
 
         return text.toString();
       }
+      print('ERROR: Bad status code: ${response.statusCode}');
+      print('Response body: ${response.data}');
       return '';
     } catch (e) {
       log('Error in chatTextGenerationRepo: ${e.toString()}');
