@@ -21,26 +21,13 @@ import 'package:student_learning_app/ai/utils/constants.dart';
  */
 class ChatRepo {
   /**
-   * Generates AI text responses using the Google Gemini API.
-   * 
-   * This method sends a conversation history to the Google Gemini 2.0 Flash
+   * Generates AI text responses using the OpenRouter API.
+   *
+   * This method sends a conversation history to the configured OpenRouter
    * model and returns the generated response. It handles the complete API
    * communication flow including request formatting, response parsing, and
    * error handling.
-   * 
-   * The method performs the following steps:
-   * 1. Creates a Dio HTTP client instance
-   * 2. Formats the conversation history for the API
-   * 3. Sends a POST request to the Gemini API
-   * 4. Validates the response status code
-   * 5. Parses the response structure to extract the generated text
-   * 6. Handles various error conditions with detailed logging
-   * 
-   * The API request includes:
-   * - Previous conversation messages for context
-   * - Generation configuration specifying text/plain response format
-   * - API key for authentication
-   * 
+   *
    * @param previousMessage A list of previous chat messages providing context for the AI
    * @return A Future that completes with the generated AI response text, or empty string on error
    */
@@ -49,82 +36,149 @@ class ChatRepo {
     try {
       Dio dio = Dio();
 
+      // Trim history to speed up network payloads
+      const maxMessages = 12;
+      final recentMessages = previousMessage.length > maxMessages
+          ? previousMessage.sublist(previousMessage.length - maxMessages)
+          : previousMessage;
+
       // Debug logging to track what's being sent
-      print('Sending ${previousMessage.length} messages to AI');
-      for (int i = 0; i < previousMessage.length; i++) {
-        final msg = previousMessage[i];
+      print('Sending ${recentMessages.length} (of ${previousMessage.length}) messages to AI');
+      for (int i = 0; i < recentMessages.length; i++) {
+        final msg = recentMessages[i];
         final text = msg.parts.isNotEmpty ? msg.parts.first.text : '';
         print('Message $i [${msg.role}]: ${text.length} chars - "${text.substring(0, text.length > 50 ? 50 : text.length)}..."');
       }
 
-      final response = await dio.post(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}",
-          data: {
-            "contents": previousMessage.map((e) => e.toJson()).toList(),
-            "generationConfig": {"responseMimeType": "text/plain"}
-          });
+      // Map conversation into OpenRouter chat format
+      final messages = recentMessages.map((e) {
+        final text = e.parts.isNotEmpty ? e.parts.first.text : '';
+        final role = e.role == 'model' ? 'assistant' : e.role;
+        return {
+          'role': role,
+          'content': text,
+        };
+      }).toList();
 
-      if (response.statusCode! >= 200 && response.statusCode! < 300) {
+      // Try default model first, then remaining available models (deduped)
+      final modelsToTry = <String>{
+        defaultModel,
+        ...availableModels.where((m) => m != defaultModel),
+      }.toList();
+      final errors = <String>[];
+
+      for (final model in modelsToTry) {
+        print('Attempting model: $model');
+        Response response;
+        try {
+          response = await dio.post(
+            apiEndpoint,
+            data: {
+              'model': model,
+              'messages': messages,
+            },
+            options: Options(
+              headers: {
+                'Authorization': 'Bearer $apiKey',
+                'Content-Type': 'application/json',
+              },
+              validateStatus: (_) => true,
+            ),
+          );
+        } catch (e) {
+          errors.add('$model -> network error: ${e.toString()}');
+          continue;
+        }
+
+        final status = response.statusCode ?? 0;
+        if (status >= 200 && status < 300) {
+          final data = response.data;
+          if (data == null) {
+            log('Response data is null');
+            print('ERROR: Response data is null');
+            continue;
+          }
+
+          // Log full response for debugging
+          print('Full API response: ${data.toString()}');
+
+          final choices = data['choices'];
+          if (choices == null || choices.isEmpty) {
+            log('No choices in response');
+            print('ERROR: No choices in response. Full data: $data');
+            continue;
+          }
+
+          final firstChoice = choices.first;
+          final message = firstChoice['message'];
+          if (message == null) {
+            log('No message in first choice');
+            print('ERROR: No message in first choice. Choice: $firstChoice');
+            continue;
+          }
+
+          final content = message['content'];
+
+          // OpenRouter may return content as a plain string or a list of parts
+          if (content is String) {
+            if (content.isNotEmpty) {
+              print('Using model (string content): $model');
+              return content;
+            }
+            log('Empty string content in message');
+            print('ERROR: Empty string content in message. Message: $message');
+            continue;
+          }
+
+          if (content is List && content.isNotEmpty) {
+            // Find first text part
+            final first = content.first;
+            if (first is Map && first['text'] != null) {
+              final text = first['text'].toString();
+              if (text.isNotEmpty) {
+                print('Using model (list text content): $model');
+                return text;
+              }
+            }
+            // If not text, try stringifying non-empty map
+            final asString = first.toString();
+            if (asString.isNotEmpty) {
+              print('Using model (list map content): $model');
+              return asString;
+            }
+          }
+
+          log('Unhandled content format');
+          print('ERROR: Unhandled content format. Message: $message');
+          continue;
+        }
+
+        // Non-2xx: capture error message and maybe retry next model
         final data = response.data;
-        if (data == null) {
-          log('Response data is null');
-          print('ERROR: Response data is null');
-          return '';
+        String errMsg = 'Status $status';
+        if (data is Map && data['error'] != null) {
+          errMsg = data['error']['message']?.toString() ?? errMsg;
         }
 
-        // Log full response for debugging
-        print('Full API response: ${data.toString()}');
+        errors.add('$model -> $errMsg');
 
-        final candidates = data['candidates'];
-        if (candidates == null || candidates.isEmpty) {
-          log('No candidates in response');
-          print('ERROR: No candidates in response. Full data: $data');
-          return '';
+        // Skip to next model on rate-limit/busy or missing endpoints
+        if (status == 429 || status == 503 || errMsg.contains('No endpoints found')) {
+          print('Model $model unavailable ($errMsg), trying next model...');
+          await Future.delayed(const Duration(milliseconds: 300));
+          continue;
         }
 
-        final firstCandidate = candidates.first;
-        if (firstCandidate == null) {
-          log('First candidate is null');
-          print('ERROR: First candidate is null');
-          return '';
-        }
-
-        final content = firstCandidate['content'];
-        if (content == null) {
-          log('Content is null');
-          print('ERROR: Content is null. Candidate: $firstCandidate');
-          return '';
-        }
-
-        final parts = content['parts'];
-        if (parts == null || parts.isEmpty) {
-          log('No parts in content');
-          print('ERROR: No parts in content. Content: $content');
-          return '';
-        }
-
-        final firstPart = parts.first;
-        if (firstPart == null) {
-          log('First part is null');
-          print('ERROR: First part is null');
-          return '';
-        }
-
-        final text = firstPart['text'];
-        if (text == null) {
-          log('Text is null');
-          print('ERROR: Text is null. Part: $firstPart');
-          return '';
-        }
-
-        return text.toString();
+        // Other errors: keep collecting but try remaining models
+        continue;
       }
-      print('ERROR: Bad status code: ${response.statusCode}');
-      print('Response body: ${response.data}');
-      return '';
+
+      throw Exception(errors.isNotEmpty
+          ? 'AI request failed: ${errors.join(' | ')}'
+          : 'AI request failed with no response');
     } catch (e) {
       log('Error in chatTextGenerationRepo: ${e.toString()}');
-      return '';
+      throw Exception('AI error: ${e.toString()}');
     }
   }
 }

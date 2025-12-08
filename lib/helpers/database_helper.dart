@@ -79,6 +79,8 @@ class DatabaseHelper {
   Future<Database> get database async {
     if (_database != null) {
       print('DEBUG: Database already exists, returning existing instance');
+      // Ensure email column exists before returning
+      await _ensureEmailColumnExists(_database!);
       return _database!;
     }
     print('DEBUG: Database does not exist, initializing new database');
@@ -104,7 +106,7 @@ class DatabaseHelper {
     try {
       return await openDatabase(
         pathStr,
-        version: 4,
+        version: 5,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -121,10 +123,37 @@ class DatabaseHelper {
       // Try to open again, which will trigger onCreate
       return await openDatabase(
         pathStr,
-        version: 4,
+        version: 5,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
+    }
+  }
+
+  /**
+   * Ensures the email column exists in the users table.
+   * This method checks if the email column exists and adds it if missing.
+   * This handles the case where an old database exists without the email column.
+   */
+  Future<void> _ensureEmailColumnExists(Database db) async {
+    try {
+      // Check if email column exists by trying to query it
+      await db.rawQuery('SELECT email FROM users LIMIT 1');
+      // If we get here, column exists
+      return;
+    } catch (e) {
+      // Column doesn't exist, add it
+      if (e.toString().contains('no such column: email')) {
+        print('DEBUG: Email column missing, attempting to add it...');
+        try {
+          // Add email column WITHOUT UNIQUE constraint first (to handle existing NULL values)
+          await db.execute('ALTER TABLE users ADD COLUMN email TEXT');
+          print('DEBUG: Email column successfully added to users table');
+        } catch (alterError) {
+          print('DEBUG: Error adding email column: $alterError');
+          // Continue - email might already exist or table might have issues
+        }
+      }
     }
   }
 
@@ -146,6 +175,7 @@ class DatabaseHelper {
       CREATE TABLE users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
+        email TEXT,
         password TEXT NOT NULL,
         points INTEGER DEFAULT 0,
         current_theme TEXT DEFAULT 'halloween',
@@ -301,6 +331,21 @@ class DatabaseHelper {
         // Continue execution - the _ensureThemeTableExists method will handle missing table
       }
     }
+    if (oldVersion < 5) {
+      print('DEBUG: Upgrading to version 5 - adding email column to users table');
+      try {
+        // Add email column WITHOUT UNIQUE constraint (to handle existing NULL values)
+        await db.execute('ALTER TABLE users ADD COLUMN email TEXT');
+        print('DEBUG: Email column added to users table');
+      } catch (e) {
+        if (e.toString().contains('duplicate column name')) {
+          print('DEBUG: Email column already exists');
+        } else {
+          print('DEBUG: Error adding email column: $e');
+          // Continue - email is optional
+        }
+      }
+    }
     print('DEBUG: Database upgrade completed');
   }
 
@@ -402,7 +447,9 @@ class DatabaseHelper {
     // Best-effort remote provisioning so this user can log in from other devices next time
     if (isAuthenticated && AppConfig.useRemoteDb) {
       try {
-        await _remote.register(username, password);
+        // Get user email from database for remote provisioning
+        final userEmail = await _getUserEmail(username) ?? '$username@eduquest.app';
+        await _remote.register(username, userEmail, password);
         print('DEBUG: Provisioned remote account for $username');
       } catch (e) {
         // Ignore errors like 409 conflict if already exists
@@ -444,38 +491,43 @@ class DatabaseHelper {
    * @param password The password for the new account
    * @return A Future that completes with true if user creation succeeds, false otherwise
    */
-  Future<bool> addUser(String username, String password) async {
-    print('DEBUG: addUser called for username: $username');
-    // Create the account in the remote API first when enabled
-    if (AppConfig.useRemoteDb) {
-      try {
-        final ok = await _remote.register(username, password);
-        print('DEBUG: Remote register result for $username: $ok');
-        if (!ok) {
-          print('DEBUG: Remote register returned false for $username');
-          return false; // require cloud registration for cross-device access
-        }
-      } catch (e) {
-        // Fail sign-up if cloud registration fails (e.g., 409 user exists or network error)
-        print('DEBUG: Remote register error for $username: $e');
-        return false;
-      }
-    }
+  Future<bool> addUser(String username, String email, String password) async {
+    print('DEBUG: addUser called for username: $username, email: $email');
+    
+    // First, insert the user into local SQLite (primary storage)
     final db = await database;
     try {
       final userId = await db.insert('users', {
         'username': username,
+        'email': email,
         'password': password,
         'points': 0,
         'current_theme': 'halloween',
         'created_at': DateTime.now().toIso8601String(),
       });
       print(
-          'DEBUG: User created successfully with ID: $userId, username: $username, initial points: 0');
-      return true;
+          'DEBUG: User created successfully in local DB with ID: $userId, username: $username');
+      
+      // If remote is enabled, try to sync (non-blocking - don't fail if remote fails)
+      if (AppConfig.useRemoteDb) {
+        try {
+          final ok = await _remote.register(username, email, password);
+          print('DEBUG: Remote register result for $username: $ok');
+          if (ok) {
+            print('DEBUG: User also synced to remote DB');
+          } else {
+            print('DEBUG: Remote sync skipped (user may already exist remotely)');
+            // Don't fail - local registration is enough for offline-first app
+          }
+        } catch (e) {
+          print('DEBUG: Remote sync error for $username: $e');
+          // Don't fail - local registration is enough for offline-first app
+        }
+      }
+      
+      return true; // Success if local registration succeeds
     } catch (e) {
-      print('DEBUG: Error creating user: $e');
-      // Log error in debug mode only
+      print('DEBUG: Error creating user in local DB: $e');
       return false;
     }
   }
@@ -828,6 +880,25 @@ class DatabaseHelper {
       print('DEBUG: getUserPoints error: $e');
       print('DEBUG: getUserPoints stack trace: ${StackTrace.current}');
       return 0;
+    }
+  }
+
+  Future<String?> _getUserEmail(String username) async {
+    try {
+      final db = await database;
+      final result = await db.query(
+        'users',
+        columns: ['email'],
+        where: 'username = ?',
+        whereArgs: [username],
+      );
+      if (result.isNotEmpty && result.first['email'] != null) {
+        return result.first['email'] as String;
+      }
+      return null;
+    } catch (e) {
+      print('DEBUG: Error fetching user email: $e');
+      return null;
     }
   }
 

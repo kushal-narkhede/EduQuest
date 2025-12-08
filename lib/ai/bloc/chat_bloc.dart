@@ -127,7 +127,15 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       emit(ChatSuccessState(messages: messages));
     } catch (e) {
       generating = false;
-      emit(ChatErrorState(message: "Error: ${e.toString()}"));
+      final err = e.toString();
+      // Provide a concise, user-friendly error for rate limits / busy providers
+      String friendly = "AI is currently busy. Please retry in a few seconds.";
+      if (err.contains('rate') || err.contains('429')) {
+        friendly = "AI is rate-limited right now. Please try again in ~30 seconds.";
+      }
+      emit(ChatErrorState(message: friendly));
+      // Keep detailed log for debugging
+      print('ChatErrorState details: $err');
     }
   }
 

@@ -34,10 +34,11 @@ class RemoteApiClient {
     }
   }
 
-  Future<bool> register(String username, String password) async {
+  Future<bool> register(String username, String email, String password) async {
     try {
       final res = await _dio.post('$_base/auth/register', data: {
         'username': username,
+        'email': email,
         'password': password,
       });
       // 200 = success, 409 = user exists (fail gracefully)

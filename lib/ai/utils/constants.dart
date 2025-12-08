@@ -1,12 +1,25 @@
 /**
- * API key for Google Gemini AI service.
- * 
- * This constant contains the API key required for authentication with the
- * Google Gemini AI API. The key is used in the ChatRepo to make authenticated
- * requests to the Gemini 2.0 Flash model for text generation.
- * 
- * Note: In a production environment, this API key should be stored securely
- * and not exposed in the source code. Consider using environment variables
- * or secure key management systems.
+ * API Configuration for OpenRouter service
  */
-const apiKey = "AIzaSyAfF3XuxwOk3LhXSMlvj1ft8HrYO3JWyJM";
+const String apiKey =
+		"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";
+
+/**
+ * List of reliable free models from OpenRouter
+ */
+// Ordered fallbacks; keep IDs that currently have endpoints
+const List<String> availableModels = [
+	"meta-llama/llama-3.2-3b-instruct:free",
+	"meta-llama/llama-3.1-8b-instruct:free",
+	"mistralai/mistral-7b-instruct:free",
+];
+
+/**
+ * Default model - using the most stable one
+ */
+const String defaultModel = "meta-llama/llama-3.2-3b-instruct:free";
+
+/**
+ * OpenRouter API endpoint
+ */
+const String apiEndpoint = "https://openrouter.ai/api/v1/chat/completions";

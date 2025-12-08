@@ -28,6 +28,9 @@ import 'screens/modes/treasure_hunt_mode_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 import 'package:student_learning_app/screens/shop_tab.dart';
+import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:clerk_auth/clerk_auth.dart';
+import 'package:student_learning_app/utils/config.dart';
 import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
 
 /**
@@ -39,8 +42,9 @@ import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
  * The application is designed as an educational game platform that combines
  * learning with interactive gameplay elements.
  */
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -81,6 +85,11 @@ class StudentLearningApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'EduQuest',
+      builder: ClerkAuth.materialAppBuilder(
+        config: ClerkAuthConfig(
+          publishableKey: AppConfig.clerkPublishableKey,
+        ),
+      ),
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFF0A0E21),
@@ -1997,7 +2006,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
       // Ensure demo account exists, then log into it
       final exists = await _dbHelper.usernameExists('EduQuest');
       if (!exists) {
-        await _dbHelper.addUser('EduQuest', 'eduquest');
+        await _dbHelper.addUser('EduQuest', 'demo@eduquest.app', 'eduquest');
         // Optionally give starter points to demo account
         await _dbHelper.updateUserPoints('EduQuest', 999999);
       }
@@ -2376,6 +2385,7 @@ class SignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _dbHelper = DatabaseHelper();
   bool _obscurePassword = true;
@@ -2392,6 +2402,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _usernameController.addListener(_updateFormState);
+    _emailController.addListener(_updateFormState);
     _passwordController.addListener(_updateFormState);
 
     // Initialize controllers first before any async operations that might trigger rebuilds
@@ -2431,8 +2442,10 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _usernameController.removeListener(_updateFormState);
+    _emailController.removeListener(_updateFormState);
     _passwordController.removeListener(_updateFormState);
     _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _animationController.dispose();
     _backgroundController.dispose();
@@ -2442,6 +2455,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   void _updateFormState() {
     setState(() {
       _isFormValid = _usernameController.text.isNotEmpty &&
+          _emailController.text.isNotEmpty &&
           _passwordController.text.isNotEmpty &&
           _agreeToPrivacyPolicy;
     });
@@ -2462,11 +2476,17 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
     });
 
     final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     try {
-      if (username.isEmpty || password.isEmpty) {
+      if (username.isEmpty || email.isEmpty || password.isEmpty) {
         throw Exception('Please fill in all fields');
+      }
+
+      // Basic email validation
+      if (!email.contains('@') || !email.contains('.')) {
+        throw Exception('Please enter a valid email address');
       }
 
       final userExists = await _dbHelper.usernameExists(username);
@@ -2474,33 +2494,19 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
       if (userExists) {
         throw Exception('Username already exists. Please choose another.');
       }
+      final clerkAuth = ClerkAuth.of(context, listen: false);
 
-      final success = await _dbHelper.addUser(username, password);
-      if (success) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 6),
-                Text(_currentTheme == 'halloween'
-                    ? 'Your spectral account has been conjured!'
-                    : 'Account created successfully!'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
+      // Trigger Clerk signup and send verification code to email
+      await clerkAuth.attemptSignUp(
+        strategy: Strategy.emailCode,
+        emailAddress: email,
+        username: username,
+        password: password,
+        passwordConfirmation: password,
+      );
 
-        Navigator.pop(this.context);
-      } else {
-        throw Exception('Something went wrong. Please try again.');
-      }
+      if (!mounted) return;
+      await _showEmailVerificationDialog(clerkAuth, username, email, password);
     } catch (e) {
       debugPrint('Error during sign-up: $e');
       if (!mounted) return;
@@ -2518,6 +2524,153 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
         });
       }
     }
+  }
+
+  Future<void> _showEmailVerificationDialog(ClerkAuthState clerkAuth, String username, String email, String password) async {
+    final codeController = TextEditingController();
+    
+    return showDialog(
+      context: this.context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2D3E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'Verify Your Email',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'We sent a verification code to:',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              email,
+              style: const TextStyle(
+                color: Colors.blueAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: codeController,
+              style: const TextStyle(color: Colors.white),
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              decoration: InputDecoration(
+                labelText: 'Verification Code',
+                labelStyle: const TextStyle(color: Colors.white70),
+                prefixIcon: const Icon(Icons.lock, color: Colors.white70),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: Colors.white.withOpacity(0.2),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.blueAccent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() => _isLoading = false);
+            },
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final code = codeController.text.trim();
+                if (code.isEmpty) {
+                  throw Exception('Please enter the verification code');
+                }
+
+                // Attempt verification with Clerk
+                await clerkAuth.attemptSignUp(
+                  strategy: Strategy.emailCode,
+                  code: code,
+                );
+
+                if (clerkAuth.user != null) {
+                  // Persist locally for offline support
+                  final success = await _dbHelper.addUser(username, email, password);
+                  if (!success) {
+                    throw Exception('Account created remotely but failed locally');
+                  }
+
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(this.context); // Go back to sign in
+                  
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 6),
+                          const Expanded(
+                            child: Text(
+                              'Email verified! Your account has been created.',
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                } else {
+                  throw Exception('Verification did not complete. Please try again.');
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(e.toString().replaceAll('Exception: ', '')),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+            ),
+            child: const Text(
+              'Verify',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -2588,6 +2741,39 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                                 labelStyle:
                                     const TextStyle(color: Colors.white70),
                                 prefixIcon: const Icon(Icons.person,
+                                    color: Colors.white70),
+                                filled: true,
+                                fillColor: Colors.white.withOpacity(0.1),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Colors.blueAccent,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Email field
+                            TextFormField(
+                              controller: _emailController,
+                              style: const TextStyle(color: Colors.white),
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: InputDecoration(
+                                labelText: 'Email',
+                                labelStyle:
+                                    const TextStyle(color: Colors.white70),
+                                prefixIcon: const Icon(Icons.email,
                                     color: Colors.white70),
                                 filled: true,
                                 fillColor: Colors.white.withOpacity(0.1),
@@ -5150,34 +5336,100 @@ class _ProfileTabState extends State<ProfileTab>
     showDialog(
       context: this.context,
       builder: (context) => AlertDialog(
-        title: const Text('Change Password'),
+        backgroundColor: widget.currentTheme == 'beach'
+            ? ThemeColors.getCardColor('beach')
+            : const Color(0xFF2A2D3E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Change Password',
+          style: TextStyle(
+            color: ThemeColors.getTextColor(widget.currentTheme),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: currentPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
+              style: TextStyle(
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+              decoration: InputDecoration(
                 labelText: 'Current Password',
-                border: OutlineInputBorder(),
+                labelStyle: TextStyle(
+                  color: ThemeColors.getTextColor(widget.currentTheme).withOpacity(0.7),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: ThemeColors.getAccentColor(widget.currentTheme),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: ThemeColors.getAccentColor(widget.currentTheme),
+                    width: 2,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: newPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
+              style: TextStyle(
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+              decoration: InputDecoration(
                 labelText: 'New Password',
-                border: OutlineInputBorder(),
+                labelStyle: TextStyle(
+                  color: ThemeColors.getTextColor(widget.currentTheme).withOpacity(0.7),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: ThemeColors.getAccentColor(widget.currentTheme),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: ThemeColors.getAccentColor(widget.currentTheme),
+                    width: 2,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: confirmPasswordController,
               obscureText: true,
-              decoration: const InputDecoration(
+              style: TextStyle(
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+              decoration: InputDecoration(
                 labelText: 'Confirm New Password',
-                border: OutlineInputBorder(),
+                labelStyle: TextStyle(
+                  color: ThemeColors.getTextColor(widget.currentTheme).withOpacity(0.7),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: ThemeColors.getAccentColor(widget.currentTheme),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: ThemeColors.getAccentColor(widget.currentTheme),
+                    width: 2,
+                  ),
+                ),
               ),
             ),
           ],
@@ -5185,18 +5437,35 @@ class _ProfileTabState extends State<ProfileTab>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: ThemeColors.getAccentColor(widget.currentTheme),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
               // Implement password change logic
               Navigator.pop(context);
               ScaffoldMessenger.of(this.context).showSnackBar(
-                const SnackBar(
-                    content: Text('Password change feature coming soon!')),
+                SnackBar(
+                  content: const Text('Password change feature coming soon!'),
+                  backgroundColor: ThemeColors.getAccentColor(widget.currentTheme),
+                ),
               );
             },
-            child: const Text('Change'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeColors.getAccentColor(widget.currentTheme),
+            ),
+            child: Text(
+              'Change',
+              style: TextStyle(
+                color: widget.currentTheme == 'beach'
+                    ? Colors.black
+                    : Colors.white,
+              ),
+            ),
           ),
         ],
       ),
@@ -5207,30 +5476,80 @@ class _ProfileTabState extends State<ProfileTab>
     showDialog(
       context: this.context,
       builder: (context) => AlertDialog(
-        title: const Text('About EduQuest'),
-        content: const Column(
+        backgroundColor: widget.currentTheme == 'beach'
+            ? ThemeColors.getCardColor('beach')
+            : const Color(0xFF2A2D3E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'About EduQuest',
+          style: TextStyle(
+            color: ThemeColors.getTextColor(widget.currentTheme),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'EduQuest v1.0.0',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
             ),
             SizedBox(height: 8),
             Text(
-                'A gamified learning platform designed to make education fun and engaging.'),
+              'A gamified learning platform designed to make education fun and engaging.',
+              style: TextStyle(
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+            ),
             SizedBox(height: 16),
-            Text('Features:'),
-            Text('• Create custom study sets'),
-            Text('• Practice with interactive quizzes'),
-            Text('• Earn points and unlock themes'),
-            Text('• Track your learning progress'),
+            Text(
+              'Features:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+            ),
+            Text(
+              '• Create custom study sets',
+              style: TextStyle(
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+            ),
+            Text(
+              '• Practice with interactive quizzes',
+              style: TextStyle(
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+            ),
+            Text(
+              '• Earn points and unlock themes',
+              style: TextStyle(
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+            ),
+            Text(
+              '• Track your learning progress',
+              style: TextStyle(
+                color: ThemeColors.getTextColor(widget.currentTheme),
+              ),
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(
+              'Close',
+              style: TextStyle(
+                color: ThemeColors.getAccentColor(widget.currentTheme),
+              ),
+            ),
           ),
         ],
       ),
@@ -5246,12 +5565,34 @@ class _ProfileTabState extends State<ProfileTab>
     showDialog(
       context: this.context,
       builder: (context) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        backgroundColor: widget.currentTheme == 'beach'
+            ? ThemeColors.getCardColor('beach')
+            : const Color(0xFF2A2D3E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          'Sign Out',
+          style: TextStyle(
+            color: ThemeColors.getTextColor(widget.currentTheme),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to sign out?',
+          style: TextStyle(
+            color: ThemeColors.getTextColor(widget.currentTheme),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: ThemeColors.getAccentColor(widget.currentTheme),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -5262,9 +5603,16 @@ class _ProfileTabState extends State<ProfileTab>
                 (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child:
-                const Text('Sign Out', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+            ),
+            child: Text(
+              'Sign Out',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

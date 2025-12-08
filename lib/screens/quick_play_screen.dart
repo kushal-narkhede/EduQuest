@@ -3,12 +3,11 @@ import 'package:student_learning_app/ai/bloc/chat_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../ai/models/chat_message_model.dart';
 import '../helpers/database_helper.dart';
-import 'package:student_learning_app/screens/browse_sets_screen.dart';
 import 'dart:math';
 import 'package:lottie/lottie.dart';
 import 'dart:io';
+import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/material.dart';
 import 'dart:async';
 import '../main.dart' show getBackgroundForTheme, ThemeColors;
 import 'package:flutter/services.dart';
@@ -43,8 +42,6 @@ class _HomePageState extends State<HomePage> {
   String? selectedAnswer;
   bool isWaitingForQuestions = false;
   String username = ''; // Add username field
-  int _score = 0;
-
   List<Map<String, dynamic>> scienceQuestions = [];
   List<bool> answeredCorrectly =
       []; // Track which questions were answered correctly
@@ -58,15 +55,22 @@ class _HomePageState extends State<HomePage> {
   int numberOfQuestions = 5; // New variable for question count
   File? _userProfileImage; // Add profile image state
 
+    String get _primarySubject =>
+      selectedSubjects.isNotEmpty
+        ? selectedSubjects.first
+        : (subjects.isNotEmpty ? subjects.first : "General Knowledge");
+
   // Search functionality
   List<String> filteredSubjects = [];
   bool isSearching = false;
 
   // Powerup state variables
   Map<String, int> _userPowerups = {};
+  // ignore: unused_field
   bool _skipUsed = false;
   bool _fiftyFiftyUsed = false;
   bool _doublePointsActive = false;
+  // ignore: unused_field
   bool _extraTimeUsed = false;
   List<String> _removedOptions = [];
   // Add this for hint dialog state
@@ -951,14 +955,40 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+  // ignore: unused_element
+  void _scrollToBottom({
+    double offsetPadding = 48,
+    bool retryIfNotReady = true,
+    bool force = false,
+  }) {
+    if (!_scrollController.hasClients) {
+      if (retryIfNotReady) {
+        Future.delayed(const Duration(milliseconds: 50), () {
+          _scrollToBottom(
+            offsetPadding: offsetPadding,
+            retryIfNotReady: false,
+            force: force,
+          );
+        });
+      }
+      return;
     }
+
+    final position = _scrollController.position;
+    final distanceFromBottom = position.maxScrollExtent - position.pixels;
+
+    // Avoid pulling the user back down if they scrolled up to read older messages
+    if (!force && distanceFromBottom > 160) {
+      return;
+    }
+
+    final target = (position.maxScrollExtent - offsetPadding)
+        .clamp(0.0, position.maxScrollExtent);
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   // Function to clear chat history
@@ -976,55 +1006,67 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
           backgroundColor: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.95,
-            height: MediaQuery.of(context).size.height * 0.8,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.grey.shade900.withOpacity(0.95),
-                  Colors.grey.shade800.withOpacity(0.95),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.1),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.height * 0.88,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF0B1224),
+                      Color(0xFF0C1C2F),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.08),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.35),
+                      blurRadius: 30,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
+                child: Column(
+                  children: [
                 // Header
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
+                    gradient: const LinearGradient(
                       colors: [
-                        const Color(0xFF667eea),
-                        const Color(0xFF764ba2),
+                        Color(0xFF0EA5E9),
+                        Color(0xFF0F766E),
                       ],
                     ),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(24),
                       topRight: Radius.circular(24),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0EA5E9).withOpacity(0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
@@ -1078,22 +1120,19 @@ class _HomePageState extends State<HomePage> {
                           messages = state.messages;
                         }
 
-                        // Auto-scroll to bottom only when there are messages and not generating
-                        if (messages.isNotEmpty && !_chatBloc.generating) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (_scrollController.hasClients) {
-                              _scrollController.animateTo(
-                                _scrollController.position.maxScrollExtent,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOut,
-                              );
-                            }
-                          });
-                        }
+                        // Auto-scroll only when there's content or a loader to show
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (_chatBloc.generating || messages.isNotEmpty) {
+                            _scrollToBottom(
+                              offsetPadding: 48,
+                              force: true,
+                            );
+                          }
+                        });
 
                         return ListView.builder(
                           controller: _scrollController,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                           itemCount:
                               messages.length + (_chatBloc.generating ? 1 : 0),
                           itemBuilder: (context, index) {
@@ -1122,14 +1161,14 @@ class _HomePageState extends State<HomePage> {
                                       decoration: BoxDecoration(
                                         gradient: const LinearGradient(
                                           colors: [
-                                            Color(0xFF667eea),
-                                            Color(0xFF764ba2)
+                                            Color(0xFF0EA5E9),
+                                            Color(0xFF0F766E)
                                           ],
                                         ),
                                         borderRadius: BorderRadius.circular(16),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(0xFF667eea)
+                                            color: const Color(0xFF0EA5E9)
                                                 .withOpacity(0.3),
                                             blurRadius: 8,
                                             offset: const Offset(0, 2),
@@ -1184,14 +1223,18 @@ class _HomePageState extends State<HomePage> {
                                               ]
                                             : [],
                                       ),
-                                      child: Text(
-                                        message.parts.isNotEmpty
-                                            ? message.parts.first.text
-                                            : 'No message content',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          height: 1.4,
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            height: 1.4,
+                                          ),
+                                          children: _buildBoldSpans(
+                                            message.parts.isNotEmpty
+                                                ? message.parts.first.text
+                                                : 'No message content',
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1311,7 +1354,7 @@ class _HomePageState extends State<HomePage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withOpacity(0.04),
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(24),
                       bottomRight: Radius.circular(24),
@@ -1322,10 +1365,10 @@ class _HomePageState extends State<HomePage> {
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withOpacity(0.18),
                               width: 1,
                             ),
                           ),
@@ -1348,14 +1391,14 @@ class _HomePageState extends State<HomePage> {
                       Container(
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                            colors: [Color(0xFF0EA5E9), Color(0xFF0F766E)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF667eea).withOpacity(0.3),
+                              color: const Color(0xFF0EA5E9).withOpacity(0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -1373,13 +1416,10 @@ class _HomePageState extends State<HomePage> {
                               // Auto-scroll to bottom when user sends a message
                               Future.delayed(const Duration(milliseconds: 100),
                                   () {
-                                if (_scrollController.hasClients) {
-                                  _scrollController.animateTo(
-                                    _scrollController.position.maxScrollExtent,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOut,
-                                  );
-                                }
+                                _scrollToBottom(
+                                  offsetPadding: 48,
+                                  force: true,
+                                );
                               });
                             }
                           },
@@ -1391,7 +1431,9 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-        );
+        ),
+      ),
+    );
       },
     );
 
@@ -1400,6 +1442,29 @@ class _HomePageState extends State<HomePage> {
         inputMessage: initialMessage,
       ));
     }
+  }
+
+  List<TextSpan> _buildBoldSpans(String text) {
+    final spans = <TextSpan>[];
+    final regex = RegExp(r'\*\*(.+?)\*\*');
+    int currentIndex = 0;
+
+    for (final match in regex.allMatches(text)) {
+      if (match.start > currentIndex) {
+        spans.add(TextSpan(text: text.substring(currentIndex, match.start)));
+      }
+      spans.add(TextSpan(
+        text: match.group(1) ?? '',
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ));
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < text.length) {
+      spans.add(TextSpan(text: text.substring(currentIndex)));
+    }
+
+    return spans.isEmpty ? [TextSpan(text: text)] : spans;
   }
 
   // Function to parse AI response and extract questions
@@ -1474,9 +1539,9 @@ class _HomePageState extends State<HomePage> {
             'Still have fewer questions than requested, adding sample questions');
         int questionsNeeded = numberOfQuestions - newQuestions.length;
 
-        // Get sample questions for the selected subject
+        // Get sample questions for a selected subject (fallback to first available)
         List<Map<String, dynamic>> subjectSamples =
-            questions[selectedSubject] ?? [];
+          questions[_primarySubject] ?? [];
 
         if (subjectSamples.isNotEmpty) {
           // Shuffle the sample questions to randomize them
@@ -1525,12 +1590,12 @@ class _HomePageState extends State<HomePage> {
 
         // Show success message in console instead of UI
         print(
-            'Successfully loaded ${newQuestions.length} new $selectedSubject questions!');
+          'Successfully loaded ${newQuestions.length} new $_primarySubject questions!');
       } else {
         // If parsing failed completely, use sample questions
         print('No questions were parsed successfully, using sample questions');
         List<Map<String, dynamic>> subjectSamples =
-            questions[selectedSubject] ?? [];
+          questions[_primarySubject] ?? [];
 
         if (subjectSamples.isNotEmpty) {
           // Shuffle and take the requested number
@@ -1556,8 +1621,8 @@ class _HomePageState extends State<HomePage> {
             showScoreSummary = false;
           });
 
-          print(
-              'Using ${finalQuestions.length} sample questions for $selectedSubject');
+            print(
+              'Using ${finalQuestions.length} sample questions for $_primarySubject');
         } else {
           setState(() {
             isWaitingForQuestions = false;
@@ -2354,6 +2419,7 @@ Generate exactly $numberOfQuestions questions covering: $subjectsList
     ];
 
     // Function to get appropriate icon for each subject
+    // ignore: unused_element
     IconData _getIconForSubject(String subject) {
       switch (subject) {
         case "Chemistry":
@@ -3288,6 +3354,7 @@ Generate exactly $numberOfQuestions questions covering: $subjectsList
     Share.share(shareText);
   }
 
+  // ignore: unused_element
   Widget _buildChatMessages(
       List<ChatMessageModel> messages, ScrollController scrollController) {
     return Scrollbar(
@@ -3332,6 +3399,7 @@ Generate exactly $numberOfQuestions questions covering: $subjectsList
     );
   }
 
+  // ignore: unused_element
   void _showSubjectSelectionModal() {
     showDialog(
       context: context,
@@ -3680,6 +3748,7 @@ Generate exactly $numberOfQuestions questions covering: $subjectsList
     );
   }
 
+  // ignore: unused_element
   void _resetPowerupStates() {
     setState(() {
       _skipUsed = false;
