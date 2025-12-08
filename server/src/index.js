@@ -61,6 +61,10 @@ const getEmailTransporter = () => {
   const emailUser = process.env.EMAIL_USER;
   const emailPassword = process.env.EMAIL_PASSWORD;
 
+  console.log('[Email Debug] EMAIL_USER:', emailUser ? 'SET' : 'NOT SET');
+  console.log('[Email Debug] EMAIL_PASSWORD:', emailPassword ? 'SET' : 'NOT SET');
+  console.log('[Email Debug] .env path:', envPath);
+
   if (!emailUser || !emailPassword) {
     console.warn('[Email] EMAIL_USER or EMAIL_PASSWORD not set - email notifications disabled');
     return null;
@@ -166,11 +170,20 @@ app.post('/auth/send-verification', async (req, res) => {
     }
 
     const transporter = getEmailTransporter();
+    
+    // DEVELOPMENT MODE: If email is not configured, log code to console
     if (!transporter) {
-      console.warn('[Verification] Email service not configured');
-      return res.status(503).json({ ok: false, error: 'Email service unavailable' });
+      console.log('\n' + '='.repeat(60));
+      console.log('📧 VERIFICATION CODE (Development Mode)');
+      console.log('='.repeat(60));
+      console.log(`Username: ${username}`);
+      console.log(`Email: ${email}`);
+      console.log(`Code: ${code}`);
+      console.log('='.repeat(60) + '\n');
+      return res.json({ ok: true, devMode: true });
     }
 
+    // PRODUCTION MODE: Send actual email
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,

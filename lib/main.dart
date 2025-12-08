@@ -10,6 +10,7 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'helpers/database_helper.dart';
@@ -28,8 +29,6 @@ import 'screens/modes/treasure_hunt_mode_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 import 'package:student_learning_app/screens/shop_tab.dart';
-import 'package:clerk_flutter/clerk_flutter.dart';
-import 'package:clerk_auth/clerk_auth.dart';
 import 'package:student_learning_app/utils/config.dart';
 import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
 
@@ -85,11 +84,6 @@ class StudentLearningApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'EduQuest',
-      builder: ClerkAuth.materialAppBuilder(
-        config: ClerkAuthConfig(
-          publishableKey: AppConfig.clerkPublishableKey,
-        ),
-      ),
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFF0A0E21),
@@ -2494,19 +2488,27 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
       if (userExists) {
         throw Exception('Username already exists. Please choose another.');
       }
-      final clerkAuth = ClerkAuth.of(context, listen: false);
 
-      // Trigger Clerk signup and send verification code to email
-      await clerkAuth.attemptSignUp(
-        strategy: Strategy.emailCode,
-        emailAddress: email,
-        username: username,
-        password: password,
-        passwordConfirmation: password,
+      // Generate 6-digit verification code
+      final code = (100000 + Random().nextInt(900000)).toString();
+      
+      // Send verification email via backend
+      final response = await http.post(
+        Uri.parse('${AppConfig.baseUrl}/auth/send-verification'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'username': username,
+          'code': code,
+        }),
       );
 
+      if (response.statusCode != 200) {
+        throw Exception('Failed to send verification email');
+      }
+
       if (!mounted) return;
-      await _showEmailVerificationDialog(clerkAuth, username, email, password);
+      await _showEmailVerificationDialogCustom(code, username, email, password);
     } catch (e) {
       debugPrint('Error during sign-up: $e');
       if (!mounted) return;
@@ -2526,7 +2528,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _showEmailVerificationDialog(ClerkAuthState clerkAuth, String username, String email, String password) async {
+  Future<void> _showEmailVerificationDialogCustom(String expectedCode, String username, String email, String password) async {
     final codeController = TextEditingController();
     
     return showDialog(
@@ -2611,13 +2613,8 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                   throw Exception('Please enter the verification code');
                 }
 
-                // Attempt verification with Clerk
-                await clerkAuth.attemptSignUp(
-                  strategy: Strategy.emailCode,
-                  code: code,
-                );
-
-                if (clerkAuth.user != null) {
+                // Verify code matches
+                if (code == expectedCode) {
                   // Persist locally for offline support
                   final success = await _dbHelper.addUser(username, email, password);
                   if (!success) {

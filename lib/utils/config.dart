@@ -11,8 +11,9 @@ class AppConfig {
     const envKey = String.fromEnvironment('CLERK_PUBLISHABLE_KEY');
     if (envKey.isNotEmpty) return envKey;
 
-    // Fallback placeholder; override via --dart-define=CLERK_PUBLISHABLE_KEY=pk_test_...
-    return 'pk_test_YOUR_CLERK_KEY_HERE';
+    // TODO: Replace with your actual Clerk Publishable Key from https://dashboard.clerk.com
+    // Get it from: Dashboard -> API Keys -> Publishable Key (starts with pk_test_ or pk_live_)
+    return 'pk_test_c2FmZS1odW1wYmFjay0zOS5jbGVyay5hY2NvdW50cy5kZXYk';
   }
 
   /// Base URL for the backend API. Uses Android emulator loopback when needed.
@@ -21,19 +22,18 @@ class AppConfig {
     const envUrl = String.fromEnvironment('API_BASE_URL');
     if (envUrl.isNotEmpty) return envUrl;
 
-    // Production: use your deployed backend URL
-    const productionUrl = 'https://fbla-2025-5mb7.onrender.com';
-    if (productionUrl != 'https://your-backend.onrender.com') {
-      return productionUrl; // Use production URL if configured
-    }
-
+    // DEVELOPMENT MODE: Using local server
+    // Change this to your production URL when deploying
+    // const productionUrl = 'https://fbla-2025-5mb7.onrender.com';
+    
     // Development fallback: Web uses localhost
     if (kIsWeb) return 'http://localhost:3000';
 
     try {
       if (Platform.isAndroid) {
-        // Special host to reach host machine from Android emulator
-        return 'http://10.0.2.2:3000';
+        // Use your computer's local IP address for Android emulator/device
+        // If 10.0.2.2 doesn't work, use your computer's actual IP
+        return 'http://192.168.0.104:3000';
       }
     } catch (_) {
       // Platform may not be available in all contexts
