@@ -10,7 +10,6 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'helpers/database_helper.dart';
@@ -29,7 +28,8 @@ import 'screens/modes/treasure_hunt_mode_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lottie/lottie.dart';
 import 'package:student_learning_app/screens/shop_tab.dart';
-import 'package:student_learning_app/utils/config.dart';
+import 'package:student_learning_app/screens/inbox_screen.dart';
+// import 'package:student_learning_app/utils/config.dart'; // Unused import
 import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
 
 /**
@@ -2379,7 +2379,7 @@ class SignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
+  // final _emailController = TextEditingController(); // REMOVED: Email no longer required
   final _passwordController = TextEditingController();
   final _dbHelper = DatabaseHelper();
   bool _obscurePassword = true;
@@ -2396,7 +2396,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _usernameController.addListener(_updateFormState);
-    _emailController.addListener(_updateFormState);
+    // _emailController.addListener(_updateFormState); // REMOVED
     _passwordController.addListener(_updateFormState);
 
     // Initialize controllers first before any async operations that might trigger rebuilds
@@ -2436,10 +2436,10 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _usernameController.removeListener(_updateFormState);
-    _emailController.removeListener(_updateFormState);
+    // _emailController.removeListener(_updateFormState); // REMOVED
     _passwordController.removeListener(_updateFormState);
     _usernameController.dispose();
-    _emailController.dispose();
+    // _emailController.dispose(); // REMOVED
     _passwordController.dispose();
     _animationController.dispose();
     _backgroundController.dispose();
@@ -2449,7 +2449,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   void _updateFormState() {
     setState(() {
       _isFormValid = _usernameController.text.isNotEmpty &&
-          _emailController.text.isNotEmpty &&
+          // _emailController.text.isNotEmpty && // REMOVED: Email not required
           _passwordController.text.isNotEmpty &&
           _agreeToPrivacyPolicy;
     });
@@ -2470,45 +2470,42 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
     });
 
     final username = _usernameController.text.trim();
-    final email = _emailController.text.trim();
+    // final email = _emailController.text.trim(); // REMOVED
     final password = _passwordController.text.trim();
 
     try {
-      if (username.isEmpty || email.isEmpty || password.isEmpty) {
+      if (username.isEmpty || password.isEmpty) {
         throw Exception('Please fill in all fields');
       }
 
-      // Basic email validation
-      if (!email.contains('@') || !email.contains('.')) {
-        throw Exception('Please enter a valid email address');
-      }
+      // Basic email validation - REMOVED
+      // if (!email.contains('@') || !email.contains('.')) {
+      //   throw Exception('Please enter a valid email address');
+      // }
 
-      final userExists = await _dbHelper.usernameExists(username);
+      print('DEBUG: Checking if username exists: $username');
+      final userExists = await _dbHelper.usernameExistsForRegistration(username);
+      print('DEBUG: Username exists check result: $userExists');
 
       if (userExists) {
         throw Exception('Username already exists. Please choose another.');
       }
 
-      // Generate 6-digit verification code
-      final code = (100000 + Random().nextInt(900000)).toString();
+      print('DEBUG: Creating user account...');
+      // Create user account without email
+      await _dbHelper.createUser(username, password);
       
-      // Send verification email via backend
-      final response = await http.post(
-        Uri.parse('${AppConfig.baseUrl}/auth/send-verification'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'username': username,
-          'code': code,
-        }),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to send verification email');
-      }
-
       if (!mounted) return;
-      await _showEmailVerificationDialogCustom(code, username, email, password);
+      
+      // Navigate to sign in page
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created successfully! Please sign in.'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
       debugPrint('Error during sign-up: $e');
       if (!mounted) return;
@@ -2528,147 +2525,24 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _showEmailVerificationDialogCustom(String expectedCode, String username, String email, String password) async {
-    final codeController = TextEditingController();
-    
-    return showDialog(
-      context: this.context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF2A2D3E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          'Verify Your Email',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'We sent a verification code to:',
-              style: TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              email,
-              style: const TextStyle(
-                color: Colors.blueAccent,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: codeController,
-              style: const TextStyle(color: Colors.white),
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              decoration: InputDecoration(
-                labelText: 'Verification Code',
-                labelStyle: const TextStyle(color: Colors.white70),
-                prefixIcon: const Icon(Icons.lock, color: Colors.white70),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.1),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.white.withOpacity(0.2),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Colors.blueAccent,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() => _isLoading = false);
-            },
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                final code = codeController.text.trim();
-                if (code.isEmpty) {
-                  throw Exception('Please enter the verification code');
-                }
-
-                // Verify code matches
-                if (code == expectedCode) {
-                  // Persist locally for offline support
-                  final success = await _dbHelper.addUser(username, email, password);
-                  if (!success) {
-                    throw Exception('Account created remotely but failed locally');
-                  }
-
-                  Navigator.pop(context); // Close dialog
-                  Navigator.pop(this.context); // Go back to sign in
-                  
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(Icons.check_circle, color: Colors.white),
-                          const SizedBox(width: 6),
-                          const Expanded(
-                            child: Text(
-                              'Email verified! Your account has been created.',
-                            ),
-                          ),
-                        ],
-                      ),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                } else {
-                  throw Exception('Verification did not complete. Please try again.');
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(e.toString().replaceAll('Exception: ', '')),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-            ),
-            child: const Text(
-              'Verify',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // REMOVED: Email verification no longer needed
+  // Future<void> _showEmailVerificationDialog(String username, String email, String password) async {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Verify Your Email'),
+  //       content: const Text(
+  //         'A verification code has been sent to your email. Check your inbox to complete registration.',
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text('OK'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -2761,38 +2635,12 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                             ),
                             const SizedBox(height: 20),
 
-                            // Email field
-                            TextFormField(
-                              controller: _emailController,
-                              style: const TextStyle(color: Colors.white),
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: InputDecoration(
-                                labelText: 'Email',
-                                labelStyle:
-                                    const TextStyle(color: Colors.white70),
-                                prefixIcon: const Icon(Icons.email,
-                                    color: Colors.white70),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.1),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: Colors.white.withOpacity(0.2),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Colors.blueAccent,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
+                            // Email field - REMOVED
+                            // TextFormField(
+                            //   controller: _emailController,
+                            //   ...
+                            // ),
+                            // const SizedBox(height: 20),
 
                             // Password field
                             TextFormField(
@@ -3563,6 +3411,7 @@ class _LearnTabState extends State<LearnTab>
   final TextEditingController _importedSearchController =
       TextEditingController();
   String _importedSearchQuery = '';
+  int _unreadInboxCount = 0;
 
   @override
   bool get wantKeepAlive => true;
@@ -3571,6 +3420,7 @@ class _LearnTabState extends State<LearnTab>
   void initState() {
     super.initState();
     _loadStudySets();
+    _loadUnreadCount();
     _tabController = TabController(
         length: 3, vsync: this, initialIndex: 0); // Set initial tab to My Sets
     _tabController.addListener(() {
@@ -3590,6 +3440,19 @@ class _LearnTabState extends State<LearnTab>
     _importedSearchController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final count = await _dbHelper.getUnreadMessageCount(widget.username);
+      if (mounted) {
+        setState(() {
+          _unreadInboxCount = count;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading unread count: $e');
+    }
   }
 
   Future<void> _loadStudySets() async {
@@ -3634,7 +3497,7 @@ class _LearnTabState extends State<LearnTab>
               SafeArea(
               child: Column(
                 children: [
-                  // Header with points
+                  // Header with points and inbox
                   Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Row(
@@ -3673,6 +3536,72 @@ class _LearnTabState extends State<LearnTab>
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Inbox button with badge
+                        Stack(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => InboxScreen(
+                                      username: widget.username,
+                                      currentTheme: widget.currentTheme,
+                                    ),
+                                  ),
+                                ).then((_) {
+                                  // Refresh unread count when returning
+                                  _loadUnreadCount();
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: ThemeColors.getPrimaryColor(
+                                          widget.currentTheme)
+                                      .withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: ThemeColors.getPrimaryColor(
+                                        widget.currentTheme),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.mail_outline,
+                                  color: ThemeColors.getPrimaryColor(
+                                      widget.currentTheme),
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                            if (_unreadInboxCount > 0)
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.redAccent,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    _unreadInboxCount > 99
+                                        ? '99+'
+                                        : '$_unreadInboxCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(width: 8),
                         Container(
@@ -4932,6 +4861,10 @@ class _ProfileTabState extends State<ProfileTab>
   Map<String, dynamic>? _userStats;
   File? _profileImage;
   File? _userProfileImage; // Add profile image state
+  List<String> _friendsList = [];
+  List<Map<String, dynamic>> _friendRequests = [];
+  TextEditingController _friendSearchController = TextEditingController();
+  bool _isLoadingFriends = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -4942,6 +4875,7 @@ class _ProfileTabState extends State<ProfileTab>
     _loadUserStats();
     _loadProfileImage();
     _loadUserProfileImage(); // Load profile image on init
+    _loadFriends();
   }
 
   @override
@@ -5027,6 +4961,79 @@ class _ProfileTabState extends State<ProfileTab>
       await prefs.setString(
           'profile_image_${widget.username}', pickedFile.path);
     }
+  }
+
+  Future<void> _loadFriends() async {
+    if (!mounted) return;
+    setState(() => _isLoadingFriends = true);
+    try {
+      final friends = await _dbHelper.getFriends(widget.username);
+      final requests = await _dbHelper.getFriendRequests(widget.username);
+      if (mounted) {
+        setState(() {
+          _friendsList = friends;
+          _friendRequests = requests;
+          _isLoadingFriends = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading friends: $e');
+      if (mounted) {
+        setState(() => _isLoadingFriends = false);
+      }
+    }
+  }
+
+  Future<void> _sendFriendRequest(String toUsername) async {
+    // Validate recipient exists first
+    final recipientExists = await _dbHelper.usernameExists(toUsername);
+    if (!recipientExists) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User "$toUsername" does not exist')),
+        );
+      }
+      return;
+    }
+
+    final success =
+        await _dbHelper.sendFriendRequest(widget.username, toUsername);
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Friend request sent to $toUsername')),
+      );
+      _friendSearchController.clear();
+      _loadFriends();
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to send friend request')),
+      );
+    }
+  }
+
+  Future<void> _acceptFriendRequest(String fromUsername) async {
+    final success =
+        await _dbHelper.acceptFriendRequest(widget.username, fromUsername);
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Added $fromUsername as friend')),
+      );
+      _loadFriends();
+    }
+  }
+
+  Future<void> _declineFriendRequest(String fromUsername) async {
+    final success =
+        await _dbHelper.declineFriendRequest(widget.username, fromUsername);
+    if (success && mounted) {
+      _loadFriends();
+    }
+  }
+
+  @override
+  void dispose() {
+    _friendSearchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -5199,6 +5206,216 @@ class _ProfileTabState extends State<ProfileTab>
                       ),
                       const SizedBox(height: 20),
                     ],
+
+                    // Friends Section
+                    Card(
+                      elevation: 4,
+                      color: Colors.white.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Friends',
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
+                            ),
+                            const SizedBox(height: 16),
+                            // Add Friend Input
+                            TextFormField(
+                              controller: _friendSearchController,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: InputDecoration(
+                                hintText: 'Search username...',
+                                hintStyle: TextStyle(
+                                    color: Colors.white.withOpacity(0.6)),
+                                prefixIcon: const Icon(Icons.person_add,
+                                    color: Colors.white70),
+                                suffixIcon: _friendSearchController.text
+                                        .isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.check,
+                                            color: Colors.greenAccent),
+                                        onPressed: () {
+                                          if (_friendSearchController
+                                              .text.isNotEmpty) {
+                                            _sendFriendRequest(
+                                                _friendSearchController.text);
+                                          }
+                                        },
+                                      )
+                                    : null,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Colors.white24),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Colors.white24),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Colors.blueAccent),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                setState(() {});
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            // Friend Requests
+                            if (_friendRequests.isNotEmpty) ...[
+                              const Text(
+                                'Friend Requests',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ..._friendRequests.map((request) {
+                                final fromUsername =
+                                    request['from_username'] ?? 'Unknown';
+                                final status = request['status'] ?? 'pending';
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                          color: Colors.white12, width: 1),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            fromUsername,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        if (status == 'pending') ...[
+                                          IconButton(
+                                            onPressed: () =>
+                                                _acceptFriendRequest(
+                                                    fromUsername),
+                                            icon: const Icon(Icons.check,
+                                                color: Colors.greenAccent,
+                                                size: 18),
+                                            constraints: const BoxConstraints(
+                                                minWidth: 24),
+                                            padding: EdgeInsets.zero,
+                                          ),
+                                          IconButton(
+                                            onPressed: () =>
+                                                _declineFriendRequest(
+                                                    fromUsername),
+                                            icon: const Icon(Icons.close,
+                                                color: Colors.redAccent,
+                                                size: 18),
+                                            constraints: const BoxConstraints(
+                                                minWidth: 24),
+                                            padding: EdgeInsets.zero,
+                                          ),
+                                        ] else
+                                          Text(
+                                            status,
+                                            style: TextStyle(
+                                              color: status == 'accepted'
+                                                  ? Colors.greenAccent
+                                                  : Colors.grey,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              const SizedBox(height: 16),
+                            ],
+                            // Friends List
+                            const Text(
+                              'Your Friends',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (_friendsList.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: Text(
+                                  'No friends yet. Add one using the search box above.',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              )
+                            else
+                              ..._friendsList.map((friend) {
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                          color: Colors.white12, width: 1),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.person_outline,
+                                          color: Colors.blueAccent,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            friend,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
 
                     // Account Settings
                     Card(

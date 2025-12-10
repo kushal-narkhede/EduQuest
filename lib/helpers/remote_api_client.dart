@@ -8,10 +8,11 @@ class RemoteApiClient {
   RemoteApiClient()
       : _dio = Dio(
           BaseOptions(
-            // Longer timeouts to handle Render cold starts (free tier sleeps after inactivity)
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 45),
-            sendTimeout: const Duration(seconds: 30),
+            // Extended timeouts for MongoDB Atlas cloud latency
+            // Cloud database operations can take 30-120 seconds depending on load
+            connectTimeout: const Duration(seconds: 90),
+            receiveTimeout: const Duration(seconds: 120),
+            sendTimeout: const Duration(seconds: 90),
             // Don't throw on non-2xx; let us handle status codes
             validateStatus: (_) => true,
           ),
@@ -41,6 +42,7 @@ class RemoteApiClient {
         'email': email,
         'password': password,
       });
+      print('Remote register response: status=${res.statusCode}, data=${res.data}');
       // 200 = success, 409 = user exists (fail gracefully)
       if (res.statusCode == 200 && res.data is Map && res.data['ok'] == true) {
         return true;
@@ -55,10 +57,27 @@ class RemoteApiClient {
     }
   }
 
+  // Check if username exists (for registration validation only)
+  Future<bool> usernameExistsForRegistration(String username) async {
+    try {
+      final res = await _dio.get('$_base/auth/username-exists/$username');
+      if (res.statusCode == 200 && res.data is Map) {
+        return res.data['exists'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Username check error: $e');
+      return false; // On error, assume doesn't exist to allow registration attempt
+    }
+  }
+
   // POINTS
   Future<int> getUserPoints(String username) async {
     final res = await _dio.get('$_base/users/$username/points');
-    return (res.data['points'] as num).toInt();
+    if (res.statusCode != 200 || res.data is! Map) {
+      throw Exception('User not found or error retrieving points');
+    }
+    return (res.data['points'] as num?)?.toInt() ?? 0;
   }
 
   Future<void> setUserPoints(String username, int points) async {
@@ -128,5 +147,78 @@ class RemoteApiClient {
 
   Future<void> removeImportedSet(String username, String setName) async {
     await _dio.delete('$_base/users/$username/imported-sets/$setName');
+  }
+
+  // FRIENDS & MESSAGING
+  Future<List<String>> getFriends(String username) async {
+    final res = await _dio.get('$_base/users/$username/friends');
+    if (res.statusCode == 200 && res.data is Map && res.data['friends'] is List) {
+      return (res.data['friends'] as List).cast<String>();
+    }
+    return [];
+  }
+
+  Future<void> sendFriendRequest(String username, String toUsername) async {
+    print('DEBUG: POST $_base/users/$username/friend-request with toUsername=$toUsername');
+    final res = await _dio.post('$_base/users/$username/friend-request', data: {
+      'toUsername': toUsername,
+    });
+    print('DEBUG: Friend request response: status=${res.statusCode}, data=${res.data}');
+    if (res.statusCode != 200) {
+      final error = (res.data is Map) 
+          ? (res.data['error'] ?? 'Failed to send friend request')
+          : 'Failed to send friend request';
+      throw Exception(error);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getFriendRequests(String username) async {
+    final res = await _dio.get('$_base/users/$username/friend-requests');
+    if (res.statusCode == 200 && res.data is Map && res.data['requests'] is List) {
+      return (res.data['requests'] as List).cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<void> acceptFriendRequest(String username, String fromUsername) async {
+    await _dio.post('$_base/users/$username/friend-request/accept', data: {
+      'fromUsername': fromUsername,
+    });
+  }
+
+  Future<void> declineFriendRequest(String username, String fromUsername) async {
+    await _dio.post('$_base/users/$username/friend-request/decline', data: {
+      'fromUsername': fromUsername,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getInbox(String username) async {
+    final res = await _dio.get('$_base/users/$username/inbox');
+    if (res.statusCode == 200 && res.data is Map && res.data['messages'] is List) {
+      return (res.data['messages'] as List).cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<void> markMessageRead(String username, String messageId) async {
+    await _dio.put('$_base/users/$username/inbox/$messageId/read');
+  }
+
+  Future<void> archiveMessage(String username, String messageId) async {
+    await _dio.put('$_base/users/$username/inbox/$messageId/archive');
+  }
+
+  Future<void> deleteMessage(String username, String messageId) async {
+    await _dio.delete('$_base/users/$username/inbox/$messageId');
+  }
+
+  Future<void> blockUser(String username, String blockUsername) async {
+    await _dio.post('$_base/users/$username/block', data: {
+      'blockUsername': blockUsername,
+    });
+  }
+
+  Future<void> unblockUser(String username, String blockUsername) async {
+    await _dio.delete('$_base/users/$username/block/$blockUsername');
   }
 }

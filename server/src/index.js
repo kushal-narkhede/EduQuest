@@ -8,7 +8,10 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
-import User from './models/User.js';
+import User from './models/User.js'; // Assuming this User model is correctly defined
+import { v4 as uuidv4 } from 'uuid'; // Import a unique ID generator
+
+// --- Initialization and Configuration ---
 
 // Robust .env loading regardless of where the process is started from
 const __filename = fileURLToPath(import.meta.url);
@@ -48,25 +51,22 @@ if (!MONGODB_URI || /<.+>/.test(MONGODB_URI)) {
 // DB connect
 mongoose
   .connect(MONGODB_URI, { serverSelectionTimeoutMS: 8000 })
-  .then(() => console.log('MongoDB connected'))
+  .then(() => console.log('✅ MongoDB connected'))
   .catch((err) => {
-    console.error('Mongo connect error', err.message);
+    console.error('❌ Mongo connect error', err.message);
     console.error(`[Mongo] Tried URI: ${maskUri(MONGODB_URI)}`);
     process.exit(1);
   });
 
-// Email Configuration
+// --- Email Configuration and Helpers ---
+
 const getEmailTransporter = () => {
   const emailService = process.env.EMAIL_SERVICE || 'gmail';
   const emailUser = process.env.EMAIL_USER;
   const emailPassword = process.env.EMAIL_PASSWORD;
 
-  console.log('[Email Debug] EMAIL_USER:', emailUser ? 'SET' : 'NOT SET');
-  console.log('[Email Debug] EMAIL_PASSWORD:', emailPassword ? 'SET' : 'NOT SET');
-  console.log('[Email Debug] .env path:', envPath);
-
   if (!emailUser || !emailPassword) {
-    console.warn('[Email] EMAIL_USER or EMAIL_PASSWORD not set - email notifications disabled');
+    console.warn('⚠️ [Email] EMAIL_USER or EMAIL_PASSWORD not set - email notifications disabled');
     return null;
   }
 
@@ -113,21 +113,23 @@ const sendWelcomeEmail = async (email, username) => {
     });
     return true;
   } catch (error) {
-    console.error('[Email] Failed to send welcome email:', error.message);
+    console.error('❌ [Email] Failed to send welcome email:', error.message);
     return false;
   }
 };
 
-// Helpers
+// Helper to find user or throw error
 const ensureUser = async (username) => {
-  let user = await User.findOne({ username });
+  const user = await User.findOne({ username });
   if (!user) {
-    // Auto-provision user with default password 'password' when accessed indirectly
-    const passwordHash = await bcrypt.hash('password', 10);
-    user = await User.create({ username, passwordHash });
+    const error = new Error(`User not found: ${username}`);
+    error.status = 404; // Add status for better error handling if needed
+    throw error;
   }
   return user;
 };
+
+// --- API Routes ---
 
 // Root endpoint to confirm backend is alive
 app.get('/', (req, res) => {
@@ -139,7 +141,38 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, uptime: process.uptime() });
 });
 
-// AUTH
+// DEBUG: List all users
+app.get('/debug/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username email points passwordHash').lean();
+    const usersInfo = users.map(u => ({
+      username: u.username,
+      email: u.email,
+      points: u.points,
+      hasPassword: !!u.passwordHash,
+      passwordHash: u.passwordHash ? u.passwordHash.substring(0, 20) + '...' : 'none'
+    }));
+    return res.json({ users: usersInfo, count: users.length });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// --- AUTH ---
+
+// Check if username exists (for registration validation)
+app.get('/auth/username-exists/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await User.findOne({ username });
+    return res.json({ exists: !!user });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.post('/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -151,7 +184,7 @@ app.post('/auth/register', async (req, res) => {
     
     // Send welcome email (non-blocking)
     sendWelcomeEmail(email, username).catch((err) => {
-      console.error('[Registration] Email sending failed:', err);
+      console.error('❌ [Registration] Email sending failed:', err);
     });
     
     return res.json({ ok: true });
@@ -170,20 +203,11 @@ app.post('/auth/send-verification', async (req, res) => {
     }
 
     const transporter = getEmailTransporter();
-    
-    // DEVELOPMENT MODE: If email is not configured, log code to console
     if (!transporter) {
-      console.log('\n' + '='.repeat(60));
-      console.log('📧 VERIFICATION CODE (Development Mode)');
-      console.log('='.repeat(60));
-      console.log(`Username: ${username}`);
-      console.log(`Email: ${email}`);
-      console.log(`Code: ${code}`);
-      console.log('='.repeat(60) + '\n');
-      return res.json({ ok: true, devMode: true });
+      console.warn('⚠️ [Verification] Email service not configured');
+      return res.status(503).json({ ok: false, error: 'Email service unavailable' });
     }
 
-    // PRODUCTION MODE: Send actual email
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -221,7 +245,7 @@ app.post('/auth/send-verification', async (req, res) => {
 
     return res.json({ ok: true });
   } catch (e) {
-    console.error('[Verification] Error sending email:', e);
+    console.error('❌ [Verification] Error sending email:', e);
     return res.status(500).json({ ok: false, error: 'Failed to send verification email' });
   }
 });
@@ -241,6 +265,8 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
+// --- USER DATA (POINTS, THEMES, POWERUPS, IMPORTED SETS) ---
+
 // POINTS
 app.get('/users/:username/points', async (req, res) => {
   try {
@@ -249,6 +275,8 @@ app.get('/users/:username/points', async (req, res) => {
     return res.json({ points: user.points || 0 });
   } catch (e) {
     console.error(e);
+    // Handle 404 from ensureUser
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -264,6 +292,7 @@ app.put('/users/:username/points', async (req, res) => {
     return res.json({ points: user.points });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -275,6 +304,7 @@ app.get('/users/:username/theme', async (req, res) => {
     return res.json({ theme: user.currentTheme || 'space' });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -291,6 +321,7 @@ app.put('/users/:username/theme', async (req, res) => {
     return res.json({ theme: user.currentTheme });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -302,6 +333,7 @@ app.get('/users/:username/themes', async (req, res) => {
     return res.json({ themes });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -316,6 +348,7 @@ app.post('/users/:username/themes/purchase', async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -325,12 +358,14 @@ app.get('/users/:username/powerups', async (req, res) => {
   try {
     const user = await ensureUser(req.params.username);
     const map = {};
+    // Convert Map to a plain object for JSON response
     for (const [k, v] of user.powerups.entries()) {
       map[k] = v;
     }
     return res.json({ powerups: map });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -346,6 +381,7 @@ app.post('/users/:username/powerups/purchase', async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -357,12 +393,17 @@ app.post('/users/:username/powerups/use', async (req, res) => {
     if (!powerupId) return res.status(400).json({ error: 'Missing powerupId' });
     const current = user.powerups.get(powerupId) || 0;
     if (current <= 0) return res.status(400).json({ error: 'No powerups left' });
-    if (current - 1 > 0) user.powerups.set(powerupId, current - 1);
+    
+    // Decrement or delete the powerup entry
+    const newCount = current - 1;
+    if (newCount > 0) user.powerups.set(powerupId, newCount);
     else user.powerups.delete(powerupId);
+    
     await user.save();
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -375,6 +416,7 @@ app.get('/users/:username/imported-sets', async (req, res) => {
     return res.json({ sets });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -389,6 +431,7 @@ app.post('/users/:username/imported-sets', async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
@@ -402,10 +445,298 @@ app.delete('/users/:username/imported-sets/:setName', async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
     return res.status(500).json({ error: 'Server error' });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`API listening on :${PORT}`);
+// --- FRIENDS & MESSAGING ---
+
+// Get friend list
+app.get('/users/:username/friends', async (req, res) => {
+  try {
+    const user = await ensureUser(req.params.username);
+    return res.json({ friends: user.friendList || [] });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Send friend request
+// FIX: Changed req.params.fromUsername to req.params.username
+app.post('/users/:username/friend-request', async (req, res) => {
+  try {
+    const fromUsername = req.params.username; // FIX: Correctly get the sender's username from the URL param
+    const { toUsername } = req.body;
+    console.log(`[Friend Request] From: ${fromUsername}, To: ${toUsername}`);
+    if (!toUsername) return res.status(400).json({ error: 'Missing toUsername' });
+
+    const fromUser = await ensureUser(fromUsername);
+    const toUser = await User.findOne({ username: toUsername });
+    if (!toUser) {
+      console.log(`[Friend Request] Recipient not found: ${toUsername}`);
+      return res.status(404).json({ error: `User not found: ${toUsername}` });
+    }
+    if (fromUsername === toUsername) return res.status(400).json({ error: 'Cannot befriend yourself' });
+    if (fromUser.friendList.includes(toUsername)) return res.status(400).json({ error: 'Already friends' });
+    if (fromUser.blockedUsers.includes(toUsername)) return res.status(400).json({ error: 'User is blocked' });
+    
+    // Check if the recipient has blocked the sender (crucial)
+    if (toUser.blockedUsers.includes(fromUsername)) return res.status(400).json({ error: 'Cannot send request, you are blocked by this user' });
+
+
+    // Check for existing pending request (either direction)
+    const existingReq = toUser.friendRequests.find(
+      (r) => r.fromUsername === fromUsername && r.status === 'pending'
+    );
+    if (existingReq) return res.status(400).json({ error: 'Request already sent' });
+
+    // Add friend request to recipient
+    toUser.friendRequests.push({
+      fromUsername,
+      toUsername,
+      status: 'pending',
+      createdAt: new Date()
+    });
+
+    // Add message to recipient's inbox
+    // FIX: Add a unique ID for the message to allow for lookup/management
+    toUser.inbox.push({
+      id: uuidv4(), 
+      type: 'friend_request',
+      fromUsername,
+      subject: `${fromUsername} sent you a friend request`,
+      content: `${fromUsername} wants to be your friend.`,
+      isRead: false,
+      metadata: { fromUsername }
+    });
+
+    await toUser.save();
+
+    console.log(`[Friend Request] Successfully sent from ${fromUsername} to ${toUsername}`);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('[Friend Request Error]', e.message, e.stack);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Accept friend request
+app.post('/users/:username/friend-request/accept', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { fromUsername } = req.body;
+    if (!fromUsername) return res.status(400).json({ error: 'Missing fromUsername' });
+
+    const user = await ensureUser(username);
+    const friend = await ensureUser(fromUsername);
+
+    // Find and update the request
+    const reqIdx = user.friendRequests.findIndex(
+      (r) => r.fromUsername === fromUsername && r.status === 'pending'
+    );
+    if (reqIdx === -1) return res.status(404).json({ error: 'Friend request not found or not pending' });
+
+    user.friendRequests[reqIdx].status = 'accepted';
+    if (!user.friendList.includes(fromUsername)) user.friendList.push(fromUsername);
+    if (!friend.friendList.includes(username)) friend.friendList.push(username);
+
+    // Mark friend request message as read
+    user.inbox = user.inbox.map((msg) => {
+      if (msg.type === 'friend_request' && msg.fromUsername === fromUsername && !msg.isRead) {
+        return { ...msg, isRead: true };
+      }
+      return msg;
+    });
+
+    await Promise.all([user.save(), friend.save()]);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Decline friend request
+app.post('/users/:username/friend-request/decline', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { fromUsername } = req.body;
+    if (!fromUsername) return res.status(400).json({ error: 'Missing fromUsername' });
+
+    const user = await ensureUser(username);
+
+    const reqIdx = user.friendRequests.findIndex(
+      (r) => r.fromUsername === fromUsername && r.status === 'pending'
+    );
+    if (reqIdx === -1) return res.status(404).json({ error: 'Friend request not found or not pending' });
+
+    user.friendRequests[reqIdx].status = 'declined';
+
+    // Mark friend request message as read
+    user.inbox = user.inbox.map((msg) => {
+      if (msg.type === 'friend_request' && msg.fromUsername === fromUsername && !msg.isRead) {
+        return { ...msg, isRead: true };
+      }
+      return msg;
+    });
+
+    await user.save();
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get friend requests (pending + history)
+app.get('/users/:username/friend-requests', async (req, res) => {
+  try {
+    const user = await ensureUser(req.params.username);
+    return res.json({ requests: user.friendRequests || [] });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get inbox
+app.get('/users/:username/inbox', async (req, res) => {
+  try {
+    const user = await ensureUser(req.params.username);
+    const messages = user.inbox.filter((m) => !m.isArchived) || []; // Only show non-archived
+    const unreadCount = messages.filter((m) => !m.isRead).length;
+    return res.json({ messages, unreadCount });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Mark message as read
+// FIX: Ensure lookup uses the 'id' property we added to the message object
+app.put('/users/:username/inbox/:messageId/read', async (req, res) => {
+  try {
+    const { username, messageId } = req.params;
+    const user = await ensureUser(username);
+
+    user.inbox = user.inbox.map((msg) => {
+      // FIX: Use message.id for lookup
+      if (msg.id === messageId && !msg.isRead) { 
+        return { ...msg, isRead: true };
+      }
+      return msg;
+    });
+
+    await user.save();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Archive message
+// FIX: Ensure lookup uses the 'id' property we added to the message object
+app.put('/users/:username/inbox/:messageId/archive', async (req, res) => {
+  try {
+    const { username, messageId } = req.params;
+    const user = await ensureUser(username);
+
+    user.inbox = user.inbox.map((msg) => {
+      // FIX: Use message.id for lookup
+      if (msg.id === messageId) {
+        return { ...msg, isArchived: true };
+      }
+      return msg;
+    });
+
+    await user.save();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete message
+// FIX: Ensure lookup uses the 'id' property we added to the message object
+app.delete('/users/:username/inbox/:messageId', async (req, res) => {
+  try {
+    const { username, messageId } = req.params;
+    const user = await ensureUser(username);
+
+    // FIX: Filter based on message.id
+    user.inbox = user.inbox.filter((msg) => msg.id !== messageId); 
+
+    await user.save();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Block user
+app.post('/users/:username/block', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { blockUsername } = req.body;
+    if (!blockUsername) return res.status(400).json({ error: 'Missing blockUsername' });
+    if (username === blockUsername) return res.status(400).json({ error: 'Cannot block yourself' });
+
+    const user = await ensureUser(username);
+    // Ensure the user to be blocked exists, although not strictly necessary for the block list itself
+    await ensureUser(blockUsername).catch(() => { /* continue even if user doesn't exist */ }); 
+    
+    if (!user.blockedUsers.includes(blockUsername)) {
+      user.blockedUsers.push(blockUsername);
+    }
+    
+    // Remove from friend list and pending requests upon blocking
+    user.friendList = user.friendList.filter((u) => u !== blockUsername);
+    user.friendRequests = user.friendRequests.filter((r) => r.fromUsername !== blockUsername && r.toUsername !== blockUsername);
+
+    await user.save();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Unblock user
+app.delete('/users/:username/block/:blockUsername', async (req, res) => {
+  try {
+    const { username, blockUsername } = req.params;
+    const user = await ensureUser(username);
+
+    user.blockedUsers = user.blockedUsers.filter((u) => u !== blockUsername);
+
+    await user.save();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// --- Server Startup ---
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 API listening on all interfaces on port :${PORT}`);
 });
