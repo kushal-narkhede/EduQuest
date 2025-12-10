@@ -202,11 +202,11 @@ class _InboxScreenState extends State<InboxScreen>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isRead ? Colors.white : ThemeColors.getPrimaryColor(widget.currentTheme).withOpacity(0.05),
+        color: ThemeColors.getPrimaryColor(widget.currentTheme).withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isRead ? Colors.grey.shade200 : ThemeColors.getPrimaryColor(widget.currentTheme),
-          width: isRead ? 1 : 2,
+          color: Colors.white.withOpacity(0.25),
+          width: 1,
         ),
       ),
       child: ListTile(

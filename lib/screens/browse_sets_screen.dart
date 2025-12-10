@@ -5296,65 +5296,40 @@ class _MCQManagerState extends State<MCQManager> {
       // The set name should match the one in PremadeStudySetsRepository
       final setName = subjectName;
 
-      // Check if all premade sets are loaded
-      final allSetsLoaded = await _dbHelper.areAllPremadeSetsLoaded();
-      if (!allSetsLoaded) {
-        debugPrint('Not all premade sets are loaded, refreshing database...');
-        await _dbHelper.refreshPremadeSets();
-      }
-
-      // Find the set in the database
-      final premadeSets = await _dbHelper.getPremadeStudySets();
+      // Get premade sets directly from the repository (loaded from assets)
+      final premadeSets = PremadeStudySetsRepository.getPremadeSets();
 
       // Debug: Print all available premade sets
-      debugPrint('Available premade sets in database:');
+      debugPrint('Available premade sets:');
       for (var set in premadeSets) {
-        debugPrint('- ${set['name']}');
+        debugPrint('- ${set.name}');
       }
       debugPrint('Looking for: $setName');
 
-      final dbSet = premadeSets.firstWhere(
-        (set) => set['name'] == setName,
-        orElse: () => {},
+      final dbSet = premadeSets.cast<PremadeStudySet?>().firstWhere(
+        (set) => set?.name == setName,
+        orElse: () => null,
       );
 
-      if (dbSet.isEmpty) {
-        // Try refreshing premade sets first
-        debugPrint('Set not found, attempting to refresh premade sets...');
-        await _dbHelper.refreshPremadeSets();
-
-        // Try again after refresh
-        final refreshedSets = await _dbHelper.getPremadeStudySets();
-        debugPrint('After refresh, available sets:');
-        for (var set in refreshedSets) {
-          debugPrint('- ${set['name']}');
+      if (dbSet == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Set "$setName" not found in available premade sets.'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
-
-        final refreshedDbSet = refreshedSets.firstWhere(
-          (set) => set['name'] == setName,
-          orElse: () => {},
-        );
-
-        if (refreshedDbSet.isEmpty) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    'Set "$setName" not found. Please try refreshing the app.'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return;
-        }
-
-        // Use the refreshed set
-        final studySetId = refreshedDbSet['id'];
-        await _dbHelper.importPremadeSet(widget.username, studySetId);
-      } else {
-        final studySetId = dbSet['id'];
-        await _dbHelper.importPremadeSet(widget.username, studySetId);
+        return;
       }
+
+      // For now, just show success (importPremadeSet is a stub)
+      // The actual question data is in dbSet.questions
+      debugPrint('Found set: ${dbSet.name} with ${dbSet.questions.length} questions');
+
+      // Actually import the set now
+      await _dbHelper.importPremadeSet(widget.username, 0, setName: dbSet.name);
 
       // Show success message with animation
       if (mounted) {

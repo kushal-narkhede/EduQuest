@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/premade_study_sets.dart';
 import '../utils/config.dart';
 import 'remote_api_client.dart';
@@ -156,7 +157,34 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getUserImportedSets(String username) async {
     try {
-      return [];
+      final prefs = await SharedPreferences.getInstance();
+      final importedSetsJson = prefs.getString('imported_sets_$username') ?? '[]';
+      final importedSetNames = List<String>.from(jsonDecode(importedSetsJson) ?? []);
+      
+      // Get premade sets from repository
+      final premadeSets = PremadeStudySetsRepository.getPremadeSets();
+      
+      // Convert imported set names to map format with questions
+      final result = <Map<String, dynamic>>[];
+      for (final setName in importedSetNames) {
+        final premadeSet = premadeSets.cast<PremadeStudySet?>().firstWhere(
+          (set) => set?.name == setName,
+          orElse: () => null,
+        );
+        if (premadeSet != null) {
+          result.add({
+            'name': premadeSet.name,
+            'description': premadeSet.description,
+            'questionCount': premadeSet.questions.length,
+            'questions': premadeSet.questions.map((q) => {
+              'question': q.questionText,
+              'options': q.options,
+              'correctAnswer': q.correctAnswer,
+            }).toList(),
+          });
+        }
+      }
+      return result;
     } catch (e) {
       print('DEBUG: Error getting imported sets: $e');
       return [];
@@ -357,8 +385,20 @@ class DatabaseHelper {
     print('DEBUG: refreshPremadeSets stub - not implemented in MongoDB yet');
   }
 
-  Future<void> importPremadeSet(String username, int studySetId) async {
-    print('DEBUG: importPremadeSet stub - not implemented in MongoDB yet');
+  Future<void> importPremadeSet(String username, int studySetId, {String? setName}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final importedSetsJson = prefs.getString('imported_sets_$username') ?? '[]';
+      final importedSetNames = List<String>.from(jsonDecode(importedSetsJson) ?? []);
+      
+      if (setName != null && !importedSetNames.contains(setName)) {
+        importedSetNames.add(setName);
+        await prefs.setString('imported_sets_$username', jsonEncode(importedSetNames));
+        print('DEBUG: Successfully imported premade set: $setName');
+      }
+    } catch (e) {
+      print('DEBUG: Error importing premade set: $e');
+    }
   }
 
   Future<bool> areAllPremadeSetsLoaded() async {

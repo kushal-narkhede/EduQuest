@@ -73,6 +73,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
   int _points = 0;
   List<Map<String, dynamic>> _studySets = [];
   List<Map<String, dynamic>> _importedSets = [];
+  String _friendTheme = '';
 
   @override
   void initState() {
@@ -85,11 +86,13 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
       final points = await _dbHelper.getUserPoints(widget.friendUsername);
       final sets = await _dbHelper.getUserStudySets(widget.friendUsername);
       final imported = await _dbHelper.getUserImportedSets(widget.friendUsername);
+      final theme = await _dbHelper.getCurrentTheme(widget.friendUsername) ?? 'space';
       if (!mounted) return;
       setState(() {
         _points = points;
         _studySets = sets;
         _importedSets = imported;
+        _friendTheme = theme;
         _isLoading = false;
       });
     } catch (e) {
@@ -106,6 +109,12 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
         title: Text('@${widget.friendUsername}'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () => Navigator.pop(context),
+        ),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Stack(
         children: [
@@ -128,10 +137,11 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
+                              horizontal: 18, vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                           ),
+                          elevation: 4,
                         ),
                         onPressed: () {
                           Navigator.push(
@@ -145,8 +155,15 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.chat_bubble_outline),
-                        label: const Text('Start Chat'),
+                        icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                        label: const Text(
+                          'Chat',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -180,6 +197,28 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
               'Friend of @${widget.currentUser}',
               style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
+            if (_friendTheme.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.palette_outlined, size: 14, color: Colors.white70),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Theme: ${_friendTheme[0].toUpperCase()}${_friendTheme.substring(1)}',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ],
@@ -302,27 +341,36 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   bool _isLoading = true;
   bool _isSending = false;
   List<Map<String, dynamic>> _messages = [];
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     _loadConversation();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _refreshConversation();
+    });
   }
 
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _pollTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _loadConversation() async {
     setState(() => _isLoading = true);
+    await _refreshConversation(initial: true);
+  }
+
+  Future<void> _refreshConversation({bool initial = false}) async {
     final msgs = await _dbHelper.getConversation(widget.currentUser, widget.friendUsername);
     if (!mounted) return;
     setState(() {
       _messages = msgs;
-      _isLoading = false;
+      if (initial) _isLoading = false;
     });
     _scrollToBottom();
   }
@@ -347,6 +395,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         _messageController.clear();
       });
       _scrollToBottom();
+      _refreshConversation();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to send message')),
@@ -373,6 +422,12 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         title: Text('Chat with @${widget.friendUsername}'),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () => Navigator.pop(context),
+        ),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Stack(
         children: [
