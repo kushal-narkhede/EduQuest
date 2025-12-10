@@ -31,6 +31,8 @@ class _InboxScreenState extends State<InboxScreen>
   void initState() {
     super.initState();
     _loadMessages();
+    // Mark all messages as read when inbox is opened
+    _dbHelper.markAllMessagesAsRead(widget.username);
   }
 
   Future<void> _loadMessages() async {

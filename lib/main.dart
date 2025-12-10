@@ -3922,6 +3922,7 @@ class _LearnTabState extends State<LearnTab>
       TextEditingController();
   String _importedSearchQuery = '';
   int _unreadInboxCount = 0;
+  Timer? _unreadCountTimer;
 
   @override
   bool get wantKeepAlive => true;
@@ -3931,6 +3932,10 @@ class _LearnTabState extends State<LearnTab>
     super.initState();
     _loadStudySets();
     _loadUnreadCount();
+    // Poll for new unread messages every 5 seconds
+    _unreadCountTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _loadUnreadCount();
+    });
     _tabController = TabController(
         length: 3, vsync: this, initialIndex: 0); // Set initial tab to My Sets
     _tabController.addListener(() {
@@ -3949,6 +3954,7 @@ class _LearnTabState extends State<LearnTab>
   void dispose() {
     _importedSearchController.dispose();
     _tabController.dispose();
+    _unreadCountTimer?.cancel();
     super.dispose();
   }
 
@@ -4062,8 +4068,10 @@ class _LearnTabState extends State<LearnTab>
                                     ),
                                   ),
                                 ).then((_) {
-                                  // Refresh unread count when returning
-                                  _loadUnreadCount();
+                                  // Set unread count to 0 when returning from inbox
+                                  setState(() {
+                                    _unreadInboxCount = 0;
+                                  });
                                 });
                               },
                               child: Container(
@@ -4075,15 +4083,13 @@ class _LearnTabState extends State<LearnTab>
                                       .withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: ThemeColors.getPrimaryColor(
-                                        widget.currentTheme),
+                                    color: Colors.white,
                                     width: 1.5,
                                   ),
                                 ),
                                 child: Icon(
                                   Icons.mail_outline,
-                                  color: ThemeColors.getPrimaryColor(
-                                      widget.currentTheme),
+                                  color: Colors.white,
                                   size: 24,
                                 ),
                               ),

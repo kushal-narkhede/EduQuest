@@ -272,6 +272,21 @@ class DatabaseHelper {
     }
   }
 
+  Future<void> markAllMessagesAsRead(String username) async {
+    try {
+      final messages = await _remote.getInbox(username);
+      final unreadMessages = messages.where((msg) => msg['read'] != true).toList();
+      for (final msg in unreadMessages) {
+        final messageId = msg['_id'] as String? ?? msg['id'] as String? ?? '';
+        if (messageId.isNotEmpty) {
+          await _remote.markMessageRead(username, messageId);
+        }
+      }
+    } catch (e) {
+      print('DEBUG: Error marking all messages as read: $e');
+    }
+  }
+
   Future<void> archiveMessage(String username, String messageId) async {
     try {
       await _remote.archiveMessage(username, messageId);
