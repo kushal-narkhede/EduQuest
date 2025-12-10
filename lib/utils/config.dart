@@ -21,14 +21,11 @@ class AppConfig {
     const envUrl = String.fromEnvironment('API_BASE_URL');
     if (envUrl.isNotEmpty) return envUrl;
 
-    // TEMPORARY: Use local server for testing
-    return 'http://192.168.0.107:3000';
-
     // Production: use your deployed backend URL
-    // const productionUrl = 'https://fbla-2025-5mb7.onrender.com';
-    // if (productionUrl != 'https://your-backend.onrender.com') {
-    //   return productionUrl; // Use production URL if configured
-    // }
+    const productionUrl = 'https://eduquest-c9ca.onrender.com';
+    if (productionUrl != 'https://your-backend.onrender.com') {
+      return productionUrl; // Use production URL if configured
+    }
 
     // Development fallback: use your local machine's network IP for physical devices
     return 'http://192.168.0.107:3000';

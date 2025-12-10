@@ -622,6 +622,86 @@ app.get('/users/:username/inbox', async (req, res) => {
   }
 });
 
+// Direct messaging: get conversation between two users
+app.get('/users/:username/conversations/:peer', async (req, res) => {
+  try {
+    const { username, peer } = req.params;
+    const user = await ensureUser(username);
+    await ensureUser(peer); // ensure peer exists
+
+    const messages = (user.inbox || [])
+      .filter(
+        (m) =>
+          m.type === 'direct_message' &&
+          m.metadata &&
+          m.metadata.withUsername === peer
+      )
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    return res.json({ messages });
+  } catch (e) {
+    console.error('[Direct Message] Fetch error', e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Direct messaging: send message to a peer (requires friendship and not blocked)
+app.post('/users/:username/conversations/:peer', async (req, res) => {
+  try {
+    const { username, peer } = req.params;
+    const { message } = req.body;
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const sender = await ensureUser(username);
+    const recipient = await ensureUser(peer);
+
+    // Block checks
+    if (sender.blockedUsers.includes(peer) || recipient.blockedUsers.includes(username)) {
+      return res.status(403).json({ error: 'Messaging blocked between users' });
+    }
+
+    // Require friendship before chatting
+    if (!sender.friendList.includes(peer) || !recipient.friendList.includes(username)) {
+      return res.status(400).json({ error: 'You must be friends to chat' });
+    }
+
+    const trimmed = message.trim();
+    const outgoing = {
+      id: uuidv4(),
+      type: 'direct_message',
+      fromUsername: username,
+      subject: `Message to ${peer}`,
+      content: trimmed,
+      isRead: true, // sender has seen their own message
+      isArchived: false,
+      metadata: { withUsername: peer, direction: 'outgoing' },
+      createdAt: new Date(),
+    };
+
+    const incoming = {
+      ...outgoing,
+      id: uuidv4(),
+      subject: `Message from ${username}`,
+      isRead: false,
+      metadata: { withUsername: username, direction: 'incoming' },
+    };
+
+    sender.inbox.push(outgoing);
+    recipient.inbox.push(incoming);
+
+    await Promise.all([sender.save(), recipient.save()]);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('[Direct Message] Send error', e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Mark message as read
 // FIX: Ensure lookup uses the 'id' property we added to the message object
 app.put('/users/:username/inbox/:messageId/read', async (req, res) => {

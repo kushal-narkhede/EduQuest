@@ -260,6 +260,25 @@ class DatabaseHelper {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getConversation(String username, String peer) async {
+    try {
+      return await _remote.getConversation(username, peer);
+    } catch (e) {
+      print('DEBUG: Error getting conversation: $e');
+      return [];
+    }
+  }
+
+  Future<bool> sendDirectMessage(String username, String peer, String message) async {
+    try {
+      await _remote.sendDirectMessage(username, peer, message);
+      return true;
+    } catch (e) {
+      print('DEBUG: Error sending direct message: $e');
+      return false;
+    }
+  }
+
   // ========== POWERUPS ==========
   
   Future<Map<String, int>> getUserPowerups(String username) async {

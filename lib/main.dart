@@ -50,6 +50,458 @@ void main() async {
   ]);
   runApp(const StudentLearningApp());
 }
+  
+class FriendProfileScreen extends StatefulWidget {
+  final String friendUsername;
+  final String currentTheme;
+  final String currentUser;
+
+  const FriendProfileScreen({
+    super.key,
+    required this.friendUsername,
+    required this.currentTheme,
+    required this.currentUser,
+  });
+
+  @override
+  State<FriendProfileScreen> createState() => _FriendProfileScreenState();
+}
+
+class _FriendProfileScreenState extends State<FriendProfileScreen> {
+  final _dbHelper = DatabaseHelper();
+  bool _isLoading = true;
+  int _points = 0;
+  List<Map<String, dynamic>> _studySets = [];
+  List<Map<String, dynamic>> _importedSets = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriendData();
+  }
+
+  Future<void> _loadFriendData() async {
+    try {
+      final points = await _dbHelper.getUserPoints(widget.friendUsername);
+      final sets = await _dbHelper.getUserStudySets(widget.friendUsername);
+      final imported = await _dbHelper.getUserImportedSets(widget.friendUsername);
+      if (!mounted) return;
+      setState(() {
+        _points = points;
+        _studySets = sets;
+        _importedSets = imported;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading friend profile: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('@${widget.friendUsername}'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Stack(
+        children: [
+          getBackgroundForTheme(widget.currentTheme),
+          SafeArea(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 16),
+                      _buildStatsCard(),
+                      const SizedBox(height: 16),
+                      _buildSection('Study Sets', _studySets),
+                      const SizedBox(height: 12),
+                      _buildSection('Imported Sets', _importedSets),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FriendChatScreen(
+                                friendUsername: widget.friendUsername,
+                                currentUser: widget.currentUser,
+                                currentTheme: widget.currentTheme,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.chat_bubble_outline),
+                        label: const Text('Start Chat'),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: Colors.white.withOpacity(0.1),
+          child: const Icon(Icons.person_outline, color: Colors.white, size: 30),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.friendUsername,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'Friend of @${widget.currentUser}',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.star_outline, color: Colors.amber, size: 28),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Points',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              Text(
+                _points.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, List<Map<String, dynamic>> sets) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (sets.isEmpty)
+            const Text(
+              'Nothing shared yet.',
+              style: TextStyle(color: Colors.white60, fontSize: 13),
+            )
+          else
+            ...sets.map((set) => _buildSetTile(set)).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetTile(Map<String, dynamic> set) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          title: Text(
+            set['name'] ?? 'Untitled set',
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+          subtitle: Text(
+            set['description'] ?? 'No description',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+          trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+        ),
+      ),
+    );
+  }
+}
+
+class FriendChatScreen extends StatefulWidget {
+  final String friendUsername;
+  final String currentUser;
+  final String currentTheme;
+
+  const FriendChatScreen({
+    super.key,
+    required this.friendUsername,
+    required this.currentUser,
+    required this.currentTheme,
+  });
+
+  @override
+  State<FriendChatScreen> createState() => _FriendChatScreenState();
+}
+
+class _FriendChatScreenState extends State<FriendChatScreen> {
+  final _dbHelper = DatabaseHelper();
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoading = true;
+  bool _isSending = false;
+  List<Map<String, dynamic>> _messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConversation();
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadConversation() async {
+    setState(() => _isLoading = true);
+    final msgs = await _dbHelper.getConversation(widget.currentUser, widget.friendUsername);
+    if (!mounted) return;
+    setState(() {
+      _messages = msgs;
+      _isLoading = false;
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty || _isSending) return;
+    setState(() => _isSending = true);
+    final ok = await _dbHelper.sendDirectMessage(widget.currentUser, widget.friendUsername, text);
+    if (!mounted) return;
+    if (ok) {
+      final now = DateTime.now().toIso8601String();
+      setState(() {
+        _messages.add({
+          'id': 'local-${DateTime.now().millisecondsSinceEpoch}',
+          'type': 'direct_message',
+          'fromUsername': widget.currentUser,
+          'content': text,
+          'createdAt': now,
+          'metadata': {'withUsername': widget.friendUsername, 'direction': 'outgoing'},
+        });
+        _messageController.clear();
+      });
+      _scrollToBottom();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to send message')),
+      );
+    }
+    if (mounted) setState(() => _isSending = false);
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 48,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Chat with @${widget.friendUsername}'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Stack(
+        children: [
+          getBackgroundForTheme(widget.currentTheme),
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _messages.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No messages yet. Say hello!',
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.all(12),
+                              itemCount: _messages.length,
+                              itemBuilder: (context, index) {
+                                final msg = _messages[index];
+                                final isMe = msg['fromUsername'] == widget.currentUser;
+                                return Align(
+                                  alignment:
+                                      isMe ? Alignment.centerRight : Alignment.centerLeft,
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 10),
+                                    constraints: BoxConstraints(
+                                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isMe
+                                          ? Colors.blueAccent.withOpacity(0.9)
+                                          : Colors.white.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color: Colors.white12, width: 1),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          msg['content'] ?? '',
+                                          style: TextStyle(
+                                            color: isMe ? Colors.white : Colors.white,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          _formatTime(msg['createdAt']),
+                                          style: TextStyle(
+                                            color: isMe
+                                                ? Colors.white70
+                                                : Colors.white60,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Message @${widget.friendUsername}...',
+                            hintStyle: const TextStyle(color: Colors.white54),
+                            filled: true,
+                            fillColor: Colors.black.withOpacity(0.35),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.white24),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.blueAccent),
+                            ),
+                          ),
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      IconButton(
+                        icon: _isSending
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.send, color: Colors.blueAccent),
+                        onPressed: _isSending ? null : _sendMessage,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(dynamic value) {
+    try {
+      final dt = value is String ? DateTime.parse(value) : (value as DateTime?);
+      if (dt == null) return '';
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '$h:$m';
+    } catch (_) {
+      return '';
+    }
+  }
+}
 
 /**
  * The main application widget for EduQuest.
@@ -3103,8 +3555,11 @@ class _MainScreenState extends State<MainScreen> {
   int _userPoints = 0;
   bool _developerMode = false;
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  // ignore: unused_field
   List<Map<String, dynamic>> _studySets = [];
+  // ignore: unused_field
   List<Map<String, dynamic>> _premadeStudySets = [];
+  // ignore: unused_field
   bool _isLoading = true;
   int _learnTabIndex = 0; // Add this line to track the Learn tab index
 
@@ -4120,6 +4575,7 @@ class _LearnTabState extends State<LearnTab>
     );
   }
 
+  // ignore: unused_element
   Widget _buildQuickPlay() {
     // This method has been removed - quiz configuration moved to home_page.dart
     return Container();
@@ -4139,6 +4595,7 @@ class _LearnTabState extends State<LearnTab>
     }
   }
 
+  // ignore: unused_element
   Widget _buildQuizArea(
     Map<String, dynamic> question,
     int currentIndex,
@@ -4367,6 +4824,7 @@ class _LearnTabState extends State<LearnTab>
     );
   }
 
+  // ignore: unused_element
   Widget _buildScoreSummary(
     List<bool> answeredCorrectly,
     int totalQuestions,
@@ -4860,10 +5318,13 @@ class _ProfileTabState extends State<ProfileTab>
   final DatabaseHelper _dbHelper = DatabaseHelper();
   Map<String, dynamic>? _userStats;
   File? _profileImage;
+  // ignore: unused_field
   File? _userProfileImage; // Add profile image state
   List<String> _friendsList = [];
+  // ignore: unused_field
   List<Map<String, dynamic>> _friendRequests = [];
   TextEditingController _friendSearchController = TextEditingController();
+  // ignore: unused_field
   bool _isLoadingFriends = false;
 
   @override
@@ -5011,6 +5472,7 @@ class _ProfileTabState extends State<ProfileTab>
     }
   }
 
+  // ignore: unused_element
   Future<void> _acceptFriendRequest(String fromUsername) async {
     final success =
         await _dbHelper.acceptFriendRequest(widget.username, fromUsername);
@@ -5022,6 +5484,7 @@ class _ProfileTabState extends State<ProfileTab>
     }
   }
 
+  // ignore: unused_element
   Future<void> _declineFriendRequest(String fromUsername) async {
     final success =
         await _dbHelper.declineFriendRequest(widget.username, fromUsername);
@@ -5272,87 +5735,6 @@ class _ProfileTabState extends State<ProfileTab>
                               },
                             ),
                             const SizedBox(height: 16),
-                            // Friend Requests
-                            if (_friendRequests.isNotEmpty) ...[
-                              const Text(
-                                'Friend Requests',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              ..._friendRequests.map((request) {
-                                final fromUsername =
-                                    request['from_username'] ?? 'Unknown';
-                                final status = request['status'] ?? 'pending';
-                                return Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 4),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                          color: Colors.white12, width: 1),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            fromUsername,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                        if (status == 'pending') ...[
-                                          IconButton(
-                                            onPressed: () =>
-                                                _acceptFriendRequest(
-                                                    fromUsername),
-                                            icon: const Icon(Icons.check,
-                                                color: Colors.greenAccent,
-                                                size: 18),
-                                            constraints: const BoxConstraints(
-                                                minWidth: 24),
-                                            padding: EdgeInsets.zero,
-                                          ),
-                                          IconButton(
-                                            onPressed: () =>
-                                                _declineFriendRequest(
-                                                    fromUsername),
-                                            icon: const Icon(Icons.close,
-                                                color: Colors.redAccent,
-                                                size: 18),
-                                            constraints: const BoxConstraints(
-                                                minWidth: 24),
-                                            padding: EdgeInsets.zero,
-                                          ),
-                                        ] else
-                                          Text(
-                                            status,
-                                            style: TextStyle(
-                                              color: status == 'accepted'
-                                                  ? Colors.greenAccent
-                                                  : Colors.grey,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                              const SizedBox(height: 16),
-                            ],
                             // Friends List
                             const Text(
                               'Your Friends',
@@ -5379,33 +5761,52 @@ class _ProfileTabState extends State<ProfileTab>
                                 return Padding(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 4),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                          color: Colors.white12, width: 1),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.person_outline,
-                                          color: Colors.blueAccent,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            friend,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(8),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => FriendProfileScreen(
+                                            friendUsername: friend,
+                                            currentTheme: widget.currentTheme,
+                                            currentUser: widget.username,
                                           ),
                                         ),
-                                      ],
+                                      );
+                                    },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: Colors.white12, width: 1),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 8),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.person_outline,
+                                            color: Colors.blueAccent,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              friend,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.chevron_right,
+                                            color: Colors.white54,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 );
@@ -6082,6 +6483,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   // Points and powerups
   int _currentPoints = 0;
   Map<String, int> _userPowerups = {};
+  // ignore: unused_field
   bool _isLoadingPowerups = false;
 
   // Powerup states
@@ -9006,6 +9408,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
     );
   }
 
+  // ignore: unused_element
   Widget _buildEnhancedModeCard(
     String mode,
     String title,
@@ -9347,7 +9750,6 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
             .where((e) => !_removedOptions
                 .contains(e.value)) // Filter out removed options
             .map((e) {
-          final i = e.key;
           final opt = e.value;
           final sel = _selectedAnswer == opt;
           final cor = _showAnswer &&
@@ -10558,6 +10960,7 @@ class _QuizletImportScreenState extends State<QuizletImportScreen> {
   final _dbHelper = DatabaseHelper();
   bool _isLoading = false;
   List<Map<String, dynamic>> _questions = [];
+  // ignore: unused_field
   bool _hasImported = false;
 
   @override
@@ -10754,6 +11157,7 @@ class _QuizletImportScreenState extends State<QuizletImportScreen> {
         debugPrint('Trying to parse from page metadata...');
 
         final title = document.querySelector('title')?.text ?? '';
+        // ignore: unused_local_variable
         final description = document
                 .querySelector('meta[name="description"]')
                 ?.attributes['content'] ??
@@ -11740,6 +12144,7 @@ class _ManualQuestionCreationScreenState
     }
   }
 
+  // ignore: unused_element
   void _addQuestion() {
     if (_questionController.text.isEmpty ||
         _correctAnswerController.text.isEmpty ||

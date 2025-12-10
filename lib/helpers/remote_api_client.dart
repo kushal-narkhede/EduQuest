@@ -212,6 +212,25 @@ class RemoteApiClient {
     await _dio.delete('$_base/users/$username/inbox/$messageId');
   }
 
+  // DIRECT MESSAGING
+  Future<List<Map<String, dynamic>>> getConversation(String username, String peer) async {
+    final res = await _dio.get('$_base/users/$username/conversations/$peer');
+    if (res.statusCode == 200 && res.data is Map && res.data['messages'] is List) {
+      return (res.data['messages'] as List).cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<void> sendDirectMessage(String username, String peer, String message) async {
+    final res = await _dio.post('$_base/users/$username/conversations/$peer', data: {
+      'message': message,
+    });
+    if (res.statusCode != 200) {
+      final error = (res.data is Map) ? res.data['error'] : 'Failed to send message';
+      throw Exception(error);
+    }
+  }
+
   Future<void> blockUser(String username, String blockUsername) async {
     await _dio.post('$_base/users/$username/block', data: {
       'blockUsername': blockUsername,

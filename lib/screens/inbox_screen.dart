@@ -288,6 +288,40 @@ class _InboxScreenState extends State<InboxScreen>
                   color: Colors.grey.shade500,
                 ),
               ),
+              // Add Accept/Decline buttons for friend requests
+              if (type == 'friend_request')
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _acceptFriendRequest(fromUsername, messageId),
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text('Accept'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _declineFriendRequest(fromUsername, messageId),
+                          icon: const Icon(Icons.close, size: 18),
+                          label: const Text('Decline'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -319,6 +353,64 @@ class _InboxScreenState extends State<InboxScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _acceptFriendRequest(String fromUsername, String messageId) async {
+    try {
+      final success = await _dbHelper.acceptFriendRequest(widget.username, fromUsername);
+      if (success) {
+        // Delete the message after accepting
+        await _dbHelper.deleteMessage(widget.username, messageId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('You are now friends with $fromUsername')),
+          );
+        }
+        _loadMessages();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to accept friend request')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error accepting friend request: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  Future<void> _declineFriendRequest(String fromUsername, String messageId) async {
+    try {
+      final success = await _dbHelper.declineFriendRequest(widget.username, fromUsername);
+      if (success) {
+        // Delete the message after declining
+        await _dbHelper.deleteMessage(widget.username, messageId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Declined friend request from $fromUsername')),
+          );
+        }
+        _loadMessages();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to decline friend request')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error declining friend request: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    }
   }
 
   String _formatDate(DateTime date) {
