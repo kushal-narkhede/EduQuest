@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -43,6 +44,9 @@ import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
  */
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
   
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -4373,10 +4377,17 @@ class _LearnTabState extends State<LearnTab>
               final studySet = visibleSets[index];
               final isImported =
                   _premadeStudySets.any((s) => s['id'] == studySet['id']);
+              
+              // Use questionCount from the set if available (for imported sets),
+              // otherwise fetch from database
+              final hasQuestionCount = studySet['questionCount'] != null;
+              
               return FutureBuilder<int>(
-                future: _dbHelper.getStudySetQuestionCount(studySet['id']),
+                future: hasQuestionCount 
+                    ? Future.value(studySet['questionCount'] as int)
+                    : _dbHelper.getStudySetQuestionCount(studySet['id']),
                 builder: (context, snapshot) {
-                  final questionCount = snapshot.data ?? 0;
+                  final questionCount = snapshot.data ?? studySet['questionCount'] ?? 0;
                   final gradient = widget.currentTheme == 'beach'
                       ? ThemeColors.getBeachCardGradient()
                       : (ThemeColors.getCardGradient(widget.currentTheme,

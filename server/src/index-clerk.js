@@ -31,8 +31,8 @@ app.use(helmet());
 app.use(morgan('dev'));
 
 const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://kushalnarkhede09_db_user:ky7LvmoMvAdePmuj@eduquest.xqha7jn.mongodb.net/eduquest?retryWrites=true&w=majority&appName=EduQuest';
-const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || 'sk_test_R4oMlPpKSItvNuXLNEDb5PpmEnBq94KMlwpqsSTydH';
+const MONGODB_URI = process.env.MONGODB_URI;
+const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
 
 // Validate environment variables
 if (!MONGODB_URI) {

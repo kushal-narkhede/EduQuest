@@ -67,11 +67,6 @@ class _InboxScreenState extends State<InboxScreen>
     });
   }
 
-  Future<void> _markAsRead(String messageId) async {
-    await _dbHelper.markMessageAsRead(widget.username, messageId);
-    _loadMessages();
-  }
-
   Future<void> _archiveMessage(String messageId) async {
     await _dbHelper.archiveMessage(widget.username, messageId);
     _loadMessages();
@@ -102,6 +97,8 @@ class _InboxScreenState extends State<InboxScreen>
       appBar: AppBar(
         title: const Text('Inbox'),
         backgroundColor: ThemeColors.getPrimaryColor(widget.currentTheme),
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       body: Stack(
@@ -148,7 +145,42 @@ class _InboxScreenState extends State<InboxScreen>
                             itemCount: _filteredMessages.length,
                             itemBuilder: (context, index) {
                               final message = _filteredMessages[index];
-                              return _buildMessageTile(message);
+                              final messageId = message['_id'] as String? ?? message['id'] as String? ?? '';
+                              return Dismissible(
+                                key: Key(messageId),
+                                direction: DismissDirection.horizontal,
+                                onDismissed: (direction) {
+                                  _deleteMessage(messageId);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Message deleted'),
+                                      backgroundColor: Colors.red,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                                background: Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  alignment: Alignment.centerLeft,
+                                  padding: const EdgeInsets.only(left: 20),
+                                  child: const Icon(Icons.delete, color: Colors.white),
+                                ),
+                                secondaryBackground: Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  child: const Icon(Icons.delete, color: Colors.white),
+                                ),
+                                child: _buildMessageTile(message),
+                              );
                             },
                           ),
               ),
@@ -327,31 +359,21 @@ class _InboxScreenState extends State<InboxScreen>
             ],
           ),
         ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) async {
-            if (value == 'read' && !isRead) {
-              await _markAsRead(messageId);
-            } else if (value == 'archive') {
-              await _archiveMessage(messageId);
-            } else if (value == 'delete') {
-              await _deleteMessage(messageId);
+        trailing: IconButton(
+          icon: const Icon(Icons.archive_outlined),
+          color: Colors.white.withOpacity(0.7),
+          onPressed: () async {
+            await _archiveMessage(messageId);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Message archived'),
+                  backgroundColor: ThemeColors.getPrimaryColor(widget.currentTheme),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
             }
           },
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            if (!isRead)
-              const PopupMenuItem<String>(
-                value: 'read',
-                child: Text('Mark as read'),
-              ),
-            const PopupMenuItem<String>(
-              value: 'archive',
-              child: Text('Archive'),
-            ),
-            const PopupMenuItem<String>(
-              value: 'delete',
-              child: Text('Delete'),
-            ),
-          ],
         ),
       ),
     );

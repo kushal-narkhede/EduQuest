@@ -166,16 +166,24 @@ class DatabaseHelper {
       
       // Convert imported set names to map format with questions
       final result = <Map<String, dynamic>>[];
+      int idCounter = 1000000; // Use high IDs to avoid conflicts with user sets
+      
       for (final setName in importedSetNames) {
         final premadeSet = premadeSets.cast<PremadeStudySet?>().firstWhere(
           (set) => set?.name == setName,
           orElse: () => null,
         );
         if (premadeSet != null) {
+          idCounter++;
           result.add({
+            'id': idCounter, // Unique ID for the imported set
+            'studySetId': idCounter,
             'name': premadeSet.name,
             'description': premadeSet.description,
             'questionCount': premadeSet.questions.length,
+            'isCustom': false,
+            'isPremade': true,
+            'createdAt': DateTime.now().millisecondsSinceEpoch,
             'questions': premadeSet.questions.map((q) => {
               'question': q.questionText,
               'options': q.options,

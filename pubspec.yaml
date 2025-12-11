@@ -32,6 +32,7 @@ dependencies:
   path_provider: ^2.1.2
   pdfx: ^2.9.1
   image_picker: ^1.1.2
+  flutter_dotenv: ^5.1.0
   # clerk_flutter: ^0.0.13-beta  # REMOVED: Email verification removed
   # clerk_auth: ^0.0.13-beta  # REMOVED: Email verification removed
 
@@ -58,6 +59,7 @@ flutter:
     - assets/images/google_icon.png
     - assets/images/beach.jpg
     - assets/images/bird.png
+    - .env
     - assets/images/eduquest_logo.png
     - assets/images/Background.png
     - assets/apcs_2024_frq_answers.txt

@@ -1,8 +1,9 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 /**
  * API Configuration for OpenRouter service
  */
-const String apiKey =
-		"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";
+String get apiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
 
 /**
  * List of reliable free models from OpenRouter
