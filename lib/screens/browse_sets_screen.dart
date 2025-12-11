@@ -1320,6 +1320,17 @@ class _MCQManagerState extends State<MCQManager> {
       ],
     },
     {
+      'name': 'Financial Literacy',
+      'color': [Color(0xFF667eea), Color(0xFF764ba2)],
+      'icon': Icons.account_balance_wallet,
+      'contents': [
+        'TextBook',
+        'Question Bank',
+        'Portfolio',
+      ],
+      'questions': const [],
+    },
+    {
       'name': 'AP Computer Science Principles',
       'color': [Color(0xFF43e97b), Color(0xFF38f9d7)],
       'icon': Icons.computer,
@@ -3855,6 +3866,7 @@ class _MCQManagerState extends State<MCQManager> {
             // Add haptic feedback
             HapticFeedback.lightImpact();
 
+            print('DEBUG: Card clicked for: "${apClass['name']}"');
             // Import the course for all courses without showing choice screen
             await _importMCQSet(apClass['name']);
             // The choice screen will only appear when practicing from MySets
@@ -3908,7 +3920,7 @@ class _MCQManagerState extends State<MCQManager> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    apClass['description'],
+                    apClass['description'] ?? '',
                     style: TextStyle(
                       fontSize: 12,
                       color: secondaryTextColor,
@@ -3917,27 +3929,135 @@ class _MCQManagerState extends State<MCQManager> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: badgeBackgroundColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      apClass['name'] == 'AP Computer Science A'
-                          ? '20 MCQs + 4 FRQs'
-                          : apClass['name'] == 'SAT'
-                              ? 'Choose Subject'
-                              : '${apClass['questions']?.length ?? 0} Questions',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: primaryTextColor,
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 2),
+                  // Display content bubbles or questions
+                  apClass['name'] == 'AP Computer Science A'
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: badgeBackgroundColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            '20 MCQs + 4 FRQs',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      : apClass['name'] == 'SAT'
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: badgeBackgroundColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Choose Subject',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          : apClass['contents'] != null &&
+                                  (apClass['contents'] as List).isNotEmpty
+                              ? Transform.translate(
+                                  offset: const Offset(0, -16),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // First row: TextBook and Portfolio
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: badgeBackgroundColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                'TextBook',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: primaryTextColor,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: badgeBackgroundColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                'Portfolio',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: primaryTextColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        // Second row: Question Bank
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: badgeBackgroundColor,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            'Question Bank',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: primaryTextColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: badgeBackgroundColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${apClass['questions']?.length ?? 0} Questions',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryTextColor,
+                                    ),
+                                  ),
+                                ),
                 ],
               ),
             ),
@@ -3948,8 +4068,70 @@ class _MCQManagerState extends State<MCQManager> {
   }
 
   Widget _buildQuizScreen() {
-    final selectedClass =
-        apClasses.firstWhere((cls) => cls['name'] == selectedSubject);
+    // Add null safety check
+    if (selectedSubject == null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 64),
+              SizedBox(height: 16),
+              Text(
+                'No subject selected',
+                style: TextStyle(fontSize: 20, color: Colors.white),
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    selectedSubject = null;
+                    showAPCSChoice = false;
+                  });
+                },
+                child: Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final selectedClass = apClasses.firstWhere(
+      (cls) => cls['name'] == selectedSubject,
+      orElse: () => <String, dynamic>{},
+    );
+    
+    // Check if class was found and has questions
+    if (selectedClass.isEmpty || selectedClass['questions'] == null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 64),
+              SizedBox(height: 16),
+              Text(
+                'No questions available for $selectedSubject',
+                style: TextStyle(fontSize: 20, color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    selectedSubject = null;
+                    showAPCSChoice = false;
+                  });
+                },
+                child: Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
     // Use up to 20 questions, but not more than available
     final questions = (selectedClass['questions'] as List).take(20).toList();
     final totalQuestions = questions.length;
@@ -4648,6 +4830,8 @@ class _MCQManagerState extends State<MCQManager> {
                           onPressed: () {
                             setState(() {
                               showAPCSChoice = false;
+                              // selectedSubject should already be set from the course selection
+                              // Just trigger the quiz screen by keeping selectedSubject set
                             });
                           },
                           style: ElevatedButton.styleFrom(
@@ -4959,6 +5143,326 @@ class _MCQManagerState extends State<MCQManager> {
     );
   }
 
+  Future<void> _showFinancialLiteracyChoice() async {
+    print('DEBUG: Showing Financial Literacy choice dialog');
+    if (!mounted) return;
+    
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(16),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 500),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF667eea).withOpacity(0.4),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Financial Literacy',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Choose Your Learning Path',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+
+                // TextBook Option
+                _buildFinancialLiteracyOption(
+                  icon: Icons.book,
+                  title: 'TextBook',
+                  description: 'Learn from comprehensive guides',
+                  color: const Color(0xFF4CAF50),
+                  onTap: () {
+                    print('DEBUG: TextBook selected');
+                    Navigator.of(context).pop();
+                    _importFinancialLiteracyContent('TextBook');
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Question Bank Option
+                _buildFinancialLiteracyOption(
+                  icon: Icons.quiz,
+                  title: 'Question Bank',
+                  description: 'Practice with multiple choice questions',
+                  color: const Color(0xFF2196F3),
+                  onTap: () {
+                    print('DEBUG: Question Bank selected');
+                    Navigator.of(context).pop();
+                    _importFinancialLiteracyContent('Question Bank');
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Portfolio Option
+                _buildFinancialLiteracyOption(
+                  icon: Icons.trending_up,
+                  title: 'Portfolio',
+                  description: 'Build and track your investments',
+                  color: const Color(0xFFFF9800),
+                  onTap: () {
+                    print('DEBUG: Portfolio selected');
+                    Navigator.of(context).pop();
+                    _importFinancialLiteracyContent('Portfolio');
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Close Button
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () {
+                      print('DEBUG: Closing Financial Literacy dialog');
+                      Navigator.of(context).pop();
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFinancialLiteracyOption({
+    required IconData icon,
+    required String title,
+    required String description,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        splashColor: Colors.white.withOpacity(0.2),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withOpacity(0.2),
+                color.withOpacity(0.1),
+              ],
+            ),
+            border: Border.all(
+              color: color.withOpacity(0.4),
+              width: 2,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importFinancialLiteracyContent(String contentType) async {
+    try {
+      // Show loading state
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text('Importing $contentType...'),
+              ],
+            ),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // Get premade sets
+      final premadeSets = PremadeStudySetsRepository.getPremadeSets();
+      final setName = 'Financial Literacy';
+
+      final dbSet = premadeSets.cast<PremadeStudySet?>().firstWhere(
+        (set) => set?.name == setName,
+        orElse: () => null,
+      );
+
+      if (dbSet == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Set "$setName" not found in available premade sets.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Import the set
+      await _dbHelper.importPremadeSet(widget.username, 0, setName: dbSet.name);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text('$contentType successfully added!'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        
+        // Notify parent that a set was imported
+        widget.onSetImported?.call();
+      }
+    } catch (e) {
+      print('Error importing Financial Literacy content: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   // Import SAT subject
   Future<void> _importSATSubject(String subjectName) async {
     try {
@@ -5033,7 +5537,7 @@ class _MCQManagerState extends State<MCQManager> {
       // Save to database using existing methods
       final studySetId = await _dbHelper.createStudySet(
         studySet['name'] as String,
-        studySet['description'] as String,
+        (studySet['description'] as String?) ?? '',
         widget.username,
       );
 
@@ -5263,8 +5767,18 @@ class _MCQManagerState extends State<MCQManager> {
         return;
       }
 
+      // Special handling for Financial Literacy course
+      print('DEBUG: Checking if subject is Financial Literacy: "$subjectName"');
+      if (subjectName == 'Financial Literacy') {
+        print('DEBUG: YES - showing Financial Literacy choice dialog');
+        await _showFinancialLiteracyChoice();
+        return;
+      }
+
       // Special handling for SAT course
+      print('DEBUG: Checking if subject is SAT: "$subjectName"');
       if (subjectName == 'SAT') {
+        print('DEBUG: YES - showing SAT choice dialog');
         await _showSATSubjectChoice();
         return;
       }

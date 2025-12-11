@@ -128,14 +128,26 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     } catch (e) {
       generating = false;
       final err = e.toString();
-      // Provide a concise, user-friendly error for rate limits / busy providers
-      String friendly = "AI is currently busy. Please retry in a few seconds.";
-      if (err.contains('rate') || err.contains('429')) {
-        friendly = "AI is rate-limited right now. Please try again in ~30 seconds.";
+      print('ChatErrorState received: $err');
+      
+      // Provide user-friendly error messages based on the actual error
+      String friendly;
+      if (err.contains('User not found')) {
+        friendly = "Invalid OpenRouter API key. Please update your OPENROUTER_API_KEY in .env file.";
+      } else if (err.contains('API key is not configured')) {
+        friendly = "OpenRouter API key not found. Please check your .env file.";
+      } else if (err.contains('rate') || err.contains('429')) {
+        friendly = "AI is rate-limited. Please try again in ~30 seconds.";
+      } else if (err.contains('503') || err.contains('No endpoints found')) {
+        friendly = "AI service temporarily unavailable. Please try again shortly.";
+      } else if (err.contains('AI request failed')) {
+        // Extract the specific error message
+        friendly = err.replaceAll('Exception: ', '').replaceAll('AI error: ', '');
+      } else {
+        friendly = "AI error: ${err.replaceAll('Exception: ', '')}";
       }
+      
       emit(ChatErrorState(message: friendly));
-      // Keep detailed log for debugging
-      print('ChatErrorState details: $err');
     }
   }
 

@@ -32,6 +32,7 @@ import 'package:student_learning_app/screens/shop_tab.dart';
 import 'package:student_learning_app/screens/inbox_screen.dart';
 // import 'package:student_learning_app/utils/config.dart'; // Unused import
 import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
+import 'screens/financial_literacy_screen.dart';
 
 /**
  * Main entry point for the EduQuest learning application.
@@ -47,6 +48,8 @@ void main() async {
   
   // Load environment variables
   await dotenv.load(fileName: ".env");
+  print('✓ .env file loaded successfully');
+  print('✓ OPENROUTER_API_KEY present: ${dotenv.env.containsKey('OPENROUTER_API_KEY')}');
   
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -5111,10 +5114,22 @@ class _LearnTabState extends State<LearnTab>
   }
 
   void _startPractice(Map<String, dynamic> studySet) {
+    // Validate studySet has a name
+    if (studySet == null || !studySet.containsKey('name')) {
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid study set. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
     // Check if this is exactly AP Computer Science A
     String studySetName = studySet['name']?.toString() ?? '';
     bool isAPCompSciA = studySetName == 'AP Computer Science A';
     bool isSATReadingWriting = studySetName == 'SAT Reading & Writing';
+    bool isFinancialLiteracy = studySetName == 'Financial Literacy';
 
     if (isAPCompSciA) {
       // Show practice mode selection for AP Computer Science A
@@ -5134,6 +5149,50 @@ class _LearnTabState extends State<LearnTab>
     } else if (isSATReadingWriting) {
       // Show topic selection for SAT Reading & Writing
       _showSATTopicSelection(studySet);
+    } else if (isFinancialLiteracy) {
+      // Show the dedicated Financial Literacy chooser
+      Navigator.push(
+        this.context,
+        MaterialPageRoute(
+          builder: (context) => FinancialLiteracyScreen(
+            currentTheme: widget.currentTheme,
+            onTextBook: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(this.context).showSnackBar(
+                const SnackBar(
+                  content: Text('TextBook path coming soon.'),
+                ),
+              );
+            },
+            onQuestionBank: () {
+              Navigator.of(context).pop();
+              Navigator.push(
+                this.context,
+                MaterialPageRoute(
+                  builder: (context) => PracticeModeScreen(
+                    studySet: studySet,
+                    username: widget.username,
+                    currentTheme: widget.currentTheme,
+                  ),
+                ),
+              ).then((_) {
+                _loadUserData();
+              });
+            },
+            onPortfolio: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(this.context).showSnackBar(
+                const SnackBar(
+                  content: Text('Portfolio path coming soon.'),
+                ),
+              );
+            },
+          ),
+        ),
+      ).then((_) {
+        // Refresh points when returning from practice
+        _loadUserData();
+      });
     } else {
       // Go directly to MCQ practice for all other courses
       Navigator.push(
@@ -7053,8 +7112,30 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
     });
 
     try {
-      final questions =
-          await _dbHelper.getStudySetQuestions(widget.studySet['id']);
+      List<Map<String, dynamic>> questions;
+      
+      // Check if studySet has questions directly (from imported sets)
+      if (widget.studySet.containsKey('questions') && widget.studySet['questions'] != null) {
+        // Convert the questions from the studySet
+        final rawQuestions = widget.studySet['questions'] as List;
+        questions = rawQuestions.map((q) {
+          if (q is Map<String, dynamic>) {
+            return Map<String, dynamic>.from(q);
+          } else if (q is Map) {
+            return Map<String, dynamic>.from(q.cast<String, dynamic>());
+          }
+          return <String, dynamic>{};
+        }).toList();
+      } else if (widget.studySet.containsKey('id') && widget.studySet['id'] != null) {
+        // Try to get questions from database using id
+        questions = await _dbHelper.getStudySetQuestions(widget.studySet['id']);
+      } else {
+        throw Exception('Study set has no questions or id');
+      }
+      
+      if (questions.isEmpty) {
+        throw Exception('No questions available for this study set');
+      }
 
       // Create a deep copy of questions to make them mutable
       final shuffledQuestions = questions.map((question) {
@@ -7066,8 +7147,41 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
 
       // Randomize the options for each question to prevent answer always being A
       for (var question in shuffledQuestions) {
-        final options = (question['options'] as String).split('|');
-        final correctAnswer = question['correct_answer'] as String;
+        // Normalize field names - handle both 'question_text'/'question' and 'correct_answer'/'correctAnswer'
+        if (question.containsKey('question') && !question.containsKey('question_text')) {
+          question['question_text'] = question['question'];
+        }
+        if (question.containsKey('correctAnswer') && !question.containsKey('correct_answer')) {
+          question['correct_answer'] = question['correctAnswer'];
+        }
+        
+        // Handle both 'options' and 'correct_answer' or 'correctAnswer' keys
+        final optionsKey = question.containsKey('options') ? 'options' : null;
+        final correctAnswerKey = question.containsKey('correct_answer') ? 'correct_answer' :
+                                 question.containsKey('correctAnswer') ? 'correctAnswer' : null;
+        
+        if (optionsKey == null || correctAnswerKey == null) {
+          print('WARNING: Question missing options or correct answer: $question');
+          continue;
+        }
+        
+        // Ensure question_text exists
+        if (!question.containsKey('question_text') || question['question_text'] == null) {
+          question['question_text'] = 'Question text missing';
+        }
+        
+        // Handle options - could be String or List
+        List<String> options;
+        if (question[optionsKey] is String) {
+          options = (question[optionsKey] as String).split('|');
+        } else if (question[optionsKey] is List) {
+          options = (question[optionsKey] as List).map((e) => e.toString()).toList();
+        } else {
+          print('WARNING: Invalid options format: ${question[optionsKey]}');
+          continue;
+        }
+        
+        final correctAnswer = question[correctAnswerKey]?.toString() ?? options.first;
 
         // Create a list of option indices
         List<int> optionIndices = List.generate(options.length, (i) => i);
@@ -7193,8 +7307,11 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
     if (_showAnswer) return;
 
     final currentQuestion = _questions[_currentQuestionIndex];
-    final options = currentQuestion['options'].split('|');
-    final correctAnswer = currentQuestion['correct_answer'];
+    final optionsStr = currentQuestion['options']?.toString() ?? '';
+    if (optionsStr.isEmpty) return;
+    
+    final options = optionsStr.split('|').where((o) => o.isNotEmpty).toList();
+    final correctAnswer = currentQuestion['correct_answer']?.toString() ?? '';
 
     // Find incorrect options
     final incorrectOptions =
@@ -7244,8 +7361,10 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
 
   void _useHint() async {
     final currentQuestion = _questions[_currentQuestionIndex];
-    final questionText = currentQuestion['question_text'];
-    final options = currentQuestion['options'].split('|');
+    final questionText = currentQuestion['question_text']?.toString() ?? 'Question';
+    final optionsStr = currentQuestion['options']?.toString() ?? '';
+    if (optionsStr.isEmpty) return;
+    final options = optionsStr.split('|').where((o) => o.isNotEmpty).toList();
 
     // Create the prompt for AI
     String prompt =
@@ -7915,7 +8034,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
       _selectedAnswer = selectedAnswer;
       _showAnswer = true;
       if (selectedAnswer ==
-          _questions[_currentQuestionIndex]['correct_answer']) {
+          (_questions[_currentQuestionIndex]['correct_answer']?.toString() ?? '')) {
         _correctAnswers++;
         // Award points for correct answer
         int pointsToAward = _doublePointsActive ? 30 : 15;
@@ -9774,7 +9893,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                             .toString()
                             .isNotEmpty) ...[
                       Text(
-                        _questions[_currentQuestionIndex]['passage'],
+                        _questions[_currentQuestionIndex]['passage'].toString(),
                         style: TextStyle(
                           color: widget.currentTheme == 'beach'
                               ? ThemeColors.getTextColor('beach')
@@ -9796,7 +9915,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                     ],
                     // Display the actual question
                     Text(
-                      _questions[_currentQuestionIndex]['question_text'],
+                      (_questions[_currentQuestionIndex]['question_text'] ?? 'Question not available').toString(),
                       style: TextStyle(
                         color: widget.currentTheme == 'beach'
                             ? ThemeColors.getTextColor('beach')
@@ -9815,8 +9934,10 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           },
         ),
         const SizedBox(height: 24), // Reduced from 32
-        ..._questions[_currentQuestionIndex]['options']
+        ...(_questions[_currentQuestionIndex]['options']?.toString() ?? '')
             .split('|')
+            .where((opt) => opt.isNotEmpty)
+            .toList()
             .asMap()
             .entries
             .where((e) => !_removedOptions
@@ -9825,7 +9946,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           final opt = e.value;
           final sel = _selectedAnswer == opt;
           final cor = _showAnswer &&
-              opt == _questions[_currentQuestionIndex]['correct_answer'];
+              opt == (_questions[_currentQuestionIndex]['correct_answer']?.toString() ?? '');
           final wrg = _showAnswer && sel && !cor;
           return Padding(
             padding: const EdgeInsets.symmetric(
@@ -9953,7 +10074,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _questions[_currentQuestionIndex]['explanation'],
+                  (_questions[_currentQuestionIndex]['explanation'] ?? '').toString(),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,

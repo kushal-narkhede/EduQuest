@@ -3,22 +3,11 @@ import '../main.dart' show getBackgroundForTheme;
 
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'dart:io';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:student_learning_app/ai/bloc/chat_bloc.dart';
 import 'package:student_learning_app/screens/frq_summary_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:student_learning_app/screens/score_summary_screen.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
-import 'package:student_learning_app/ai/models/chat_message_model.dart';
 
 /**
  * Manual structure for AP Computer Science A 2024 Free Response Questions.
@@ -990,7 +979,8 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
                               }
                               print('===================\n');
 
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                              WidgetsBinding.instance
+                                  .addPostFrameCallback((_) {
                                 _showChatModalAndStartGrading(context);
                               });
                             },
@@ -1162,6 +1152,8 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
   bool isSubmitting = false;
   String? error;
   String? lastAIResponse;
+  late final ChatBloc _chatBloc;
+  StreamSubscription<ChatState>? _chatSubscription;
 
   // Answer storage
   Map<String, String> answers = {};
@@ -1170,15 +1162,22 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
   bool showTextInput = false;
   String currentAnswerKey = '';
   final TextEditingController _answerController = TextEditingController();
+  
+  // Store canonical answers for grading
+  Map<String, String> _storedCanonicalAnswers = {};
 
   @override
   void initState() {
     super.initState();
+    _chatBloc = ChatBloc();
+    _chatSubscription = _chatBloc.stream.listen(_handleChatState);
     _loadQuestions();
   }
 
   @override
   void dispose() {
+    _chatSubscription?.cancel();
+    _chatBloc.close();
     _answerController.dispose();
     super.dispose();
   }
@@ -1245,6 +1244,184 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
     setState(() {
       showTextInput = false;
     });
+  }
+
+  List<FrqGradingResult> _parseGradingResponse(String text) {
+    final results = <FrqGradingResult>[];
+    final parsedQuestions = <String>{};
+
+    void addResult(String questionNumber, String pointsStr, String feedback,
+        [String? canonicalAnswer]) {
+      final q = questionNumber.trim().toUpperCase();
+      if (parsedQuestions.contains(q)) {
+        print('DEBUG: Duplicate question $q, skipping');
+        return;
+      }
+      parsedQuestions.add(q);
+
+      final f = feedback.trim();
+      // Use provided canonical answer or look it up from stored answers
+      final ca = (canonicalAnswer?.trim() ?? _storedCanonicalAnswers[q] ?? '').isEmpty
+          ? _storedCanonicalAnswers[q] ?? '[Answer not found in rubric]'
+          : (canonicalAnswer?.trim() ?? '');
+      final ps = pointsStr.trim();
+
+      // Check if student actually answered this question
+      final userAnswer = answers[q] ?? '';
+      final isUnanswered = userAnswer.isEmpty || userAnswer.toLowerCase().contains('not answered');
+
+      int pointsAwarded = 0;
+      final m = RegExp(r"(\d+)").firstMatch(ps);
+      if (m != null) {
+        pointsAwarded = int.tryParse(m.group(1)!) ?? 0;
+      }
+
+      // CRITICAL: If student didn't answer, force 0 points regardless of AI response
+      if (isUnanswered) {
+        print('DEBUG: Question $q is unanswered - forcing 0 points');
+        pointsAwarded = 0;
+      }
+
+      // Ensure pointsAwarded doesn't exceed maxPoints
+      final maxPoints = questionPointValues[q] ?? 3;
+      if (pointsAwarded > maxPoints) {
+        pointsAwarded = maxPoints;
+      }
+
+      results.add(FrqGradingResult(
+        subpart: q,
+        userAnswer: userAnswer,
+        canonicalAnswer: ca,
+        pointsAwarded: pointsAwarded,
+        maxPoints: maxPoints,
+        feedback: f,
+      ));
+      print('DEBUG: Parsed $q: $pointsAwarded/$maxPoints, unanswered=$isUnanswered, canonical answer length: ${ca.length}');
+    }
+
+    // Try bracketed format first (3 parts: Q# ||| points ||| feedback)
+    final entryRegex = RegExp(
+      r"\[(Q\d+[a-zA-Z]?)\s*\|\|\|\s*([^|\]]+?)\|\|\|\s*([\s\S]*?)\]",
+      multiLine: true,
+    );
+    final matches = entryRegex.allMatches(text).toList();
+
+    print('DEBUG: Bracketed regex found ${matches.length} matches');
+
+    if (matches.isNotEmpty) {
+      for (final m in matches) {
+        addResult(m.group(1)!, m.group(2)!, m.group(3)!);
+      }
+    }
+
+    // Try unbracketed format for any missing questions (3 parts: Q# ||| points ||| feedback)
+    if (parsedQuestions.length < widget.frqCount) {
+      final altRegex = RegExp(
+        r"(Q\d+[a-zA-Z]?)\s*\|\|\|\s*([^|\n]+?)\|\|\|\s*([\s\S]*?)(?=(?:\n\s*Q|\n\n|\Z))",
+        multiLine: true,
+      );
+      final altMatches = altRegex.allMatches(text).toList();
+      print('DEBUG: Unbracketed regex found ${altMatches.length} matches');
+      for (final m in altMatches) {
+        addResult(m.group(1)!, m.group(2)!, m.group(3)!);
+      }
+    }
+
+    // Log any missing questions
+    for (String question in manualQuestions.take(widget.frqCount)) {
+      if (!parsedQuestions.contains(question.toUpperCase())) {
+        print('DEBUG: Missing parsed question: $question');
+        // Add missing result with 0 points and placeholder feedback
+        final maxPoints = questionPointValues[question] ?? 3;
+        final userAnswer = answers[question] ?? '';
+        final isUnanswered = userAnswer.isEmpty;
+        
+        // Get canonical answer from stored answers
+        final canonicalAnswer = _storedCanonicalAnswers[question] ?? '[Answer not found in rubric]';
+        
+        results.add(FrqGradingResult(
+          subpart: question,
+          userAnswer: userAnswer,
+          canonicalAnswer: canonicalAnswer,
+          pointsAwarded: isUnanswered ? 0 : 0, // Always 0 if missing or unanswered
+          maxPoints: maxPoints,
+          feedback: isUnanswered 
+              ? '[Question was not answered - 0 points]'
+              : '[AI did not grade this question - please try again or check official rubric]',
+        ));
+      }
+    }
+
+    print('DEBUG: Total parsed results: ${results.length} out of ${widget.frqCount}');
+    return results;
+  }
+
+  void _handleChatState(ChatState state) {
+    if (!mounted) return;
+
+    if (state is ChatSuccessState && state.messages.isNotEmpty) {
+      final lastMessage = state.messages.last;
+      if (lastMessage.role != "model" || lastMessage.parts.isEmpty) {
+        return;
+      }
+
+      final response = lastMessage.parts.first.text;
+      lastAIResponse = response;
+
+      print('DEBUG: Raw AI response length: ${response.length} characters');
+      print('DEBUG: Raw AI response (first 500 chars): ${response.substring(0, response.length > 500 ? 500 : response.length)}');
+
+      final results = _parseGradingResponse(response);
+
+      print('DEBUG: Parsed ${results.length} results out of ${widget.frqCount} questions');
+
+      if (results.isEmpty || results.length < widget.frqCount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              results.isEmpty
+                  ? 'Could not parse any grading results. Please try again.'
+                  : 'Only parsed ${results.length} of ${widget.frqCount} questions. Showing partial results.',
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        // Continue to show partial results instead of failing completely
+        if (results.isEmpty) {
+          setState(() {
+            isSubmitting = false;
+          });
+          return;
+        }
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FrqSummaryScreen(
+            results: results,
+            username: widget.username,
+            currentTheme: widget.currentTheme,
+          ),
+        ),
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            isSubmitting = false;
+          });
+        }
+      });
+    } else if (state is ChatErrorState) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(state.message),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      setState(() {
+        isSubmitting = false;
+      });
+    }
   }
 
   // Get the appropriate buttons for the current question
@@ -1590,6 +1767,27 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
           onPressed: isSubmitting
               ? null
               : () {
+                  // Check if at least one answer was provided
+                  bool hasAnyAnswer = false;
+                  for (String question in manualQuestions.take(widget.frqCount)) {
+                    final answer = answers[question]?.trim() ?? '';
+                    if (answer.isNotEmpty) {
+                      hasAnyAnswer = true;
+                      break;
+                    }
+                  }
+                  
+                  if (!hasAnyAnswer) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please provide at least one answer before submitting'),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                    return;
+                  }
+                  
                   setState(() {
                     isSubmitting = true;
                   });
@@ -1633,33 +1831,128 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
   }
 
   void _showChatModalAndStartGrading(BuildContext context) async {
-    final chatBloc = ChatBloc();
     try {
+      // Load the FRQ file
+      final frqData =
+          await rootBundle.loadString('assets/apcs_2024_frq_answers.txt');
+      
+      // Parse canonical answers from the file
+      final Map<String, String> canonicalAnswers = {};
+      final lines = frqData.split('\n');
+      String? currentQuestion;
+      List<String> currentAnswer = [];
+
+      for (int i = 0; i < lines.length; i++) {
+        String line = lines[i];
+        String trimmedLine = line.trim();
+        
+        // Look for question headers like "Q1a (4 points):" or "Q1a:"
+        final questionMatch = RegExp(r'^(Q\d+[a-z]?)\s*[\(:]').firstMatch(trimmedLine);
+
+        if (questionMatch != null) {
+          // Save previous question if exists
+          if (currentQuestion != null && currentAnswer.isNotEmpty) {
+            String answer = currentAnswer.join('\n').trim();
+            canonicalAnswers[currentQuestion] = answer;
+            print('DEBUG: Parsed answer for $currentQuestion (${answer.length} chars)');
+          }
+
+          // Start new question - uppercase for consistency
+          currentQuestion = questionMatch.group(1)!.toUpperCase();
+          currentAnswer = [];
+
+          // Extract any content after the question header on the same line
+          int colonIndex = trimmedLine.indexOf(':');
+          if (colonIndex != -1 && colonIndex < trimmedLine.length - 1) {
+            String afterColon = trimmedLine.substring(colonIndex + 1).trim();
+            if (afterColon.isNotEmpty && !afterColon.contains('points')) {
+              currentAnswer.add(afterColon);
+            }
+          }
+          print('DEBUG: Found question: $currentQuestion');
+        }
+        // Skip section headers and rubric metadata
+        else if (trimmedLine.startsWith('QUESTION ') ||
+                 trimmedLine.startsWith('GENERAL ') ||
+                 trimmedLine.startsWith('No Penalty') ||
+                 trimmedLine.startsWith('Void method') ||
+                 trimmedLine.startsWith('AP Computer') ||
+                 trimmedLine.isEmpty ||
+                 trimmedLine.startsWith('1-Point') ||
+                 trimmedLine.startsWith('Extraneous') ||
+                 trimmedLine.startsWith('Case/spelling') ||
+                 trimmedLine.startsWith('Local variables') ||
+                 trimmedLine.startsWith('Missing') ||
+                 trimmedLine.startsWith('Use of alternative') ||
+                 trimmedLine.startsWith('Formatting') ||
+                 trimmedLine.startsWith('Apply the') ||
+                 trimmedLine.startsWith('A maximum') ||
+                 trimmedLine.contains('Scoring Guidelines') ||
+                 trimmedLine.contains('SCORING RULES') ||
+                 trimmedLine.contains('Penalties') ||
+                 trimmedLine.startsWith('v)') ||
+                 trimmedLine.startsWith('w)') ||
+                 trimmedLine.startsWith('x)') ||
+                 trimmedLine.startsWith('y)') ||
+                 trimmedLine.startsWith('z)') ||
+                 trimmedLine.startsWith('- ')) {
+          // Skip these lines, they're metadata/rubric not answers
+          continue;
+        }
+        // Collect answer content for the current question
+        else if (currentQuestion != null && trimmedLine.isNotEmpty) {
+          currentAnswer.add(line); // Keep original formatting for code
+        }
+      }
+
+      // Save the last question
+      if (currentQuestion != null && currentAnswer.isNotEmpty) {
+        String answer = currentAnswer.join('\n').trim();
+        canonicalAnswers[currentQuestion] = answer;
+        print('DEBUG: Parsed final answer for $currentQuestion (${answer.length} chars)');
+      }
+
+      // Debug: print all found answers
+      print('\n=== FOUND CANONICAL ANSWERS ===');
+      canonicalAnswers.forEach((key, value) {
+        print('$key: ${value.length} chars');
+      });
+      print('=== END CANONICAL ANSWERS ===\n');
+
+      // Store canonical answers for use when parsing AI response
+      _storedCanonicalAnswers = canonicalAnswers;
+      
       // Build the prompt content
       StringBuffer promptContent = StringBuffer();
 
       // Add instructions for the AI
       promptContent.writeln(
-          'You are an AP Computer Science A FRQ grader. Please grade the following student answers according to the official rubric.');
+          'You are an AP Computer Science A FRQ grader. Please grade EVERY student answer listed below according to the official rubric. You MUST provide a response for each and every question.');
       promptContent.writeln(
-          '\nFor each question, provide your response in the following format:');
+          '\n⚠️ CRITICAL GRADING RULES:');
       promptContent.writeln(
-          '[question number ||| points awarded ||| detailed feedback ||| correct solution]');
+          '1. If student answer says "Not answered" or is empty → AWARD 0 POINTS for that question');
       promptContent.writeln(
-          '\nPoints should be awarded according to the official rubric:');
-      promptContent.writeln('Q1a: 3 points - Array manipulation and logic');
-      promptContent.writeln('Q1b: 3 points - Array traversal and conditionals');
-      promptContent.writeln('Q2: 4 points - Class implementation and methods');
-      promptContent.writeln('Q3a: 3 points - Method implementation');
-      promptContent.writeln('Q3b: 3 points - Method implementation');
-      promptContent.writeln('Q4a: 3 points - Class design and implementation');
-      promptContent.writeln('Q4b: 3 points - Method implementation');
-      promptContent.writeln('\nFor each answer, provide:');
-      promptContent.writeln('1. Points awarded (0 to max points)');
+          '2. NEVER award full or partial credit for unanswered questions');
       promptContent.writeln(
-          '2. Detailed feedback explaining what was done correctly and what needs improvement');
-      promptContent.writeln('3. The complete, correct solution with comments');
-      promptContent.writeln('\nNow, please grade the following answers:\n');
+          '3. Grade all 7 questions - do not skip any');
+      promptContent.writeln(
+          '4. Use EXACT format: [question number ||| points awarded ||| detailed feedback]');
+      promptContent.writeln(
+          '5. DO NOT include the solution in your response - we have that already');
+      promptContent.writeln(
+          '\nPoint values (NEVER exceed these maximums):');
+      promptContent.writeln('Q1a: 4 points maximum');
+      promptContent.writeln('Q1b: 5 points maximum');
+      promptContent.writeln('Q2: 9 points maximum');
+      promptContent.writeln('Q3a: 3 points maximum');
+      promptContent.writeln('Q3b: 6 points maximum');
+      promptContent.writeln('Q4a: 3 points maximum');
+      promptContent.writeln('Q4b: 6 points maximum');
+      promptContent.writeln('\nFor each answer provide:');
+      promptContent.writeln('1. Points awarded (0 to the maximum for that question)');
+      promptContent.writeln('2. Detailed feedback explaining what was correct/incorrect');
+      promptContent.writeln('\nGrade EVERY question now:\n');
 
       // Add user answers to the prompt
       promptContent.writeln('=== User Answers ===');
@@ -1671,114 +1964,27 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
 
       // Load and add the official answers and rubric
       promptContent.writeln('\n=== Official Answers and Rubrics ===');
-      final frqData =
-          await rootBundle.loadString('assets/apcs_2024_frq_answers.txt');
       promptContent.writeln(frqData);
       promptContent.writeln('=== End of Official Answers ===\n');
 
       // Send the content to QuestAI
-      chatBloc.add(ChatGenerationNewTextMessageEvent(
+      lastAIResponse = null;
+      _chatBloc.add(ChatGenerationNewTextMessageEvent(
         inputMessage: promptContent.toString(),
       ));
-
-      // Listen for the AI response
-      chatBloc.stream.listen((state) {
-        if (state is ChatSuccessState && state.messages.isNotEmpty) {
-          final lastMessage = state.messages.last;
-          if (lastMessage.role == "model") {
-            lastAIResponse = lastMessage.parts.first.text;
-            // Parse the AI response and create results (robust parser)
-            List<FrqGradingResult> results = [];
-
-            try {
-              final text = lastAIResponse!;
-
-              // 1) Try to extract bracketed entries anywhere in the text, across lines
-              final entryRegex = RegExp(
-                  r"\[(Q\d+[a-zA-Z]?)\s*\|\|\|\s*([^|\]]+)\|\|\|\s*([\s\S]*?)\|\|\|\s*([\s\S]*?)\]",
-                  multiLine: true);
-              final matches = entryRegex.allMatches(text).toList();
-
-              void addResult(String questionNumber, String pointsStr,
-                  String feedback, String canonicalAnswer) {
-                // Normalize values
-                final q = questionNumber.trim();
-                final f = feedback.trim();
-                final ca = canonicalAnswer.trim();
-                final ps = pointsStr.trim();
-
-                int pointsAwarded = 0;
-                final m = RegExp(r"(\d+)").firstMatch(ps);
-                if (m != null) {
-                  pointsAwarded = int.tryParse(m.group(1)!) ?? 0;
-                }
-
-                final maxPoints = questionPointValues[q] ?? 3;
-                results.add(FrqGradingResult(
-                  subpart: q,
-                  userAnswer: answers[q] ?? '',
-                  canonicalAnswer: ca,
-                  pointsAwarded: pointsAwarded,
-                  maxPoints: maxPoints,
-                  feedback: f,
-                ));
-              }
-
-              if (matches.isNotEmpty) {
-                for (final m in matches) {
-                  addResult(m.group(1)!, m.group(2)!, m.group(3)!, m.group(4)!);
-                }
-              } else {
-                // 2) Fallback: look for lines (or paragraphs) that contain Q.. and '|||' without brackets
-                final altRegex = RegExp(
-                    r"(Q\d+[a-zA-Z]?)\s*\|\|\|\s*([^|\n]+)\|\|\|\s*([\s\S]*?)\|\|\|\s*([\s\S]*?)(?:\n\n|\r\n\r\n|\$|\Z)",
-                    multiLine: true);
-                final altMatches = altRegex.allMatches(text).toList();
-                for (final m in altMatches) {
-                  addResult(m.group(1)!, m.group(2)!, m.group(3)!, m.group(4)!);
-                }
-              }
-            } catch (e, st) {
-              print('FRQ grading response parse error: $e');
-              print(st);
-            }
-
-            // If still empty, show a friendly message and do not navigate to an empty screen
-            if (results.isEmpty) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                        'Could not parse grading results. Please try again.'),
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              }
-              setState(() {
-                isSubmitting = false;
-              });
-              return;
-            }
-
-            // Navigate to the FrqSummaryScreen with the results
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FrqSummaryScreen(
-                  results: results,
-                  username: widget.username,
-                  currentTheme: widget.currentTheme,
-                ),
-              ),
-            );
-            setState(() {
-              isSubmitting = false;
-            });
-          }
-        }
-      });
     } catch (e) {
       print('Error in grading process: $e');
+      if (mounted) {
+        setState(() {
+          isSubmitting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Grading failed: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 

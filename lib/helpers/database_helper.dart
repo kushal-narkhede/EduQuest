@@ -28,8 +28,8 @@ class DatabaseHelper {
     print('DEBUG: Authenticating user: $username');
     try {
       final result = await _remote.login(username, password);
-      print('DEBUG: Authentication result: ${result != null}');
-      return result != null;
+      print('DEBUG: Authentication result: $result');
+      return result;
     } catch (e) {
       print('DEBUG: Authentication error: $e');
       return false;

@@ -33,7 +33,16 @@ class ChatRepo {
    */
   static Future<String> chatTextGenerationRepo(
       List<ChatMessageModel> previousMessage) async {
+    print('\n=== Starting AI Request ===');
+    print('API Key status: ${apiKey.isEmpty ? "EMPTY" : "Present (${apiKey.length} chars)"}');
+    
     try {
+      // Check if API key is available
+      if (apiKey.isEmpty) {
+        print('ERROR: API key is empty!');
+        throw Exception('OpenRouter API key is not configured. Please add OPENROUTER_API_KEY to your .env file');
+      }
+
       Dio dio = Dio();
 
       // Trim history to speed up network payloads

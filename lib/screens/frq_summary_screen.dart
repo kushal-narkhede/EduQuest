@@ -573,13 +573,17 @@ class _FrqResultCardState extends State<_FrqResultCard>
                   // Correct Answer
                   _buildDetailSection(
                     'Correct Answer:',
-                    widget.result.canonicalAnswer,
+                    widget.result.canonicalAnswer.isEmpty
+                        ? 'No correct answer provided by grader. Please review the official rubric.'
+                        : widget.result.canonicalAnswer,
                     Icons.check_circle_outline,
                   ),
                   const SizedBox(height: 16),
                   _buildDetailSection(
-                    'Feedback',
-                    widget.result.feedback,
+                    'Feedback:',
+                    widget.result.feedback.isEmpty
+                        ? 'No feedback provided.'
+                        : widget.result.feedback,
                     Icons.feedback_outlined,
                   ),
                 ],

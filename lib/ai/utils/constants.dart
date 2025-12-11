@@ -3,7 +3,20 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /**
  * API Configuration for OpenRouter service
  */
-String get apiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
+String get apiKey {
+  try {
+    final key = dotenv.maybeGet('OPENROUTER_API_KEY') ?? '';
+    if (key.isEmpty) {
+      print('WARNING: OPENROUTER_API_KEY not found in .env file');
+    } else {
+      print('✓ API key loaded: ${key.substring(0, 20)}... (${key.length} chars)');
+    }
+    return key;
+  } catch (e) {
+    print('ERROR: Failed to get API key: $e');
+    return '';
+  }
+}
 
 /**
  * List of reliable free models from OpenRouter

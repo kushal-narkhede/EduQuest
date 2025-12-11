@@ -68,8 +68,22 @@ class _InboxScreenState extends State<InboxScreen>
   }
 
   Future<void> _archiveMessage(String messageId) async {
-    await _dbHelper.archiveMessage(widget.username, messageId);
-    _loadMessages();
+    try {
+      await _dbHelper.archiveMessage(widget.username, messageId);
+      // Update local state immediately
+      setState(() {
+        final index = _messages.indexWhere((m) => 
+          (m['_id'] == messageId || m['id'] == messageId));
+        if (index != -1) {
+          _messages[index]['isArchived'] = true;
+        }
+        _applyFilter();
+      });
+      // Reload from server to ensure sync
+      await _loadMessages();
+    } catch (e) {
+      debugPrint('Error archiving message: $e');
+    }
   }
 
   Future<void> _deleteMessage(String messageId) async {
