@@ -399,7 +399,27 @@ class DatabaseHelper {
   }
 
   Future<void> removeImportedSet(String username, int studySetId) async {
-    print('DEBUG: removeImportedSet stub - not implemented in MongoDB yet');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final importedSetsJson = prefs.getString('imported_sets_$username') ?? '[]';
+      final importedSetNames = List<String>.from(jsonDecode(importedSetsJson) ?? []);
+      
+      // Get all imported sets to find the one with matching ID
+      final importedSets = await getUserImportedSets(username);
+      final setToRemove = importedSets.firstWhere(
+        (set) => set['id'] == studySetId,
+        orElse: () => <String, dynamic>{},
+      );
+      
+      if (setToRemove.isNotEmpty && setToRemove['name'] != null) {
+        final setName = setToRemove['name'] as String;
+        importedSetNames.remove(setName);
+        await prefs.setString('imported_sets_$username', jsonEncode(importedSetNames));
+        print('DEBUG: Removed imported set: $setName');
+      }
+    } catch (e) {
+      print('DEBUG: Error removing imported set: $e');
+    }
   }
 
   // ========== PREMADE STUDY SETS (STUB - NOT IMPLEMENTED) ==========

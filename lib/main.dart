@@ -3979,6 +3979,185 @@ class _LearnTabState extends State<LearnTab>
     }
   }
 
+  void _showPointsDialog() {
+    String redeemCode = '';
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: ThemeColors.getCardColor(widget.currentTheme),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.diamond, color: Colors.amber, size: 24),
+              const SizedBox(width: 8),
+              const Text(
+                'Points',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Current Points: ${widget.userPoints}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.maxFinite,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Coming soon! 🚀'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.shopping_cart),
+                    label: const Text('Buy Points'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.maxFinite,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      _showRedeemCodeDialog();
+                    },
+                    icon: const Icon(Icons.card_giftcard),
+                    label: const Text('Redeem Code'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showRedeemCodeDialog() {
+    String redeemCode = '';
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: ThemeColors.getCardColor(widget.currentTheme),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Redeem Code',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Enter your redemption code:',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  onChanged: (value) {
+                    redeemCode = value;
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Enter code',
+                    hintStyle: const TextStyle(color: Colors.white30),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.1),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.white30),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.white30),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.amber),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (redeemCode.toLowerCase() == 'eduquestkushal') {
+                  // Valid code - add 1000 points
+                  int newPoints = widget.userPoints + 1000;
+                  await _dbHelper.updateUserPoints(widget.username, newPoints);
+                  widget.onPointsUpdated(newPoints);
+                  
+                  Navigator.pop(context); // Close redeem dialog
+                  Navigator.pop(context); // Close points dialog
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✨ Code redeemed! +1000 points!'),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                  
+                  // Update UI
+                  setState(() {});
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invalid code. Please check and try again.'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('Redeem'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _loadStudySets() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
@@ -4128,42 +4307,45 @@ class _LearnTabState extends State<LearnTab>
                           ],
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Colors.amber, Colors.orange],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.amber.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
+                        GestureDetector(
+                          onTap: _showPointsDialog,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Colors.amber, Colors.orange],
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.diamond,
-                                  color: Colors.white, size: 18),
-                              const SizedBox(width: 6),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  widget.developerMode
-                                      ? '∞'
-                                      : '${widget.userPoints}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.amber.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.diamond,
+                                    color: Colors.white, size: 18),
+                                const SizedBox(width: 6),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    widget.developerMode
+                                        ? '∞'
+                                        : '${widget.userPoints}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -5395,22 +5577,42 @@ class _LearnTabState extends State<LearnTab>
 
   void _deleteStudySet(int studySetId) {
     showDialog(
-      context: this.context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Study Set'),
-        content: const Text('Are you sure you want to delete this study set?'),
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: ThemeColors.getCardColor(widget.currentTheme),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 24),
+            const SizedBox(width: 8),
+            const Text(
+              'Delete Study Set',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to delete this study set?',
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               await _dbHelper.removeImportedSet(widget.username, studySetId);
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               _loadStudySets();
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -9232,7 +9434,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                                           Align(
                                             alignment: Alignment.bottomCenter,
                                             child: FractionallySizedBox(
-                                              heightFactor: 0.75,
+                                              heightFactor: 0.9,
                                               widthFactor: 1.0,
                                               child: _buildChatInterface(),
                                             ),
@@ -10215,7 +10417,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
 
   Widget _buildChatInterface() {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(left: 8, right: 8, bottom: 8, top: 16),
       decoration: BoxDecoration(
         color: const Color(0xFF1D1E33),
         borderRadius: BorderRadius.circular(16),
@@ -10279,6 +10481,18 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                       );
                     }
                   });
+                  // Additional jump to ensure loading animation is visible
+                  if (state is ChatGeneratingState) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      Future.delayed(const Duration(milliseconds: 350), () {
+                        if (_chatScrollController.hasClients) {
+                          _chatScrollController.jumpTo(
+                            _chatScrollController.position.maxScrollExtent,
+                          );
+                        }
+                      });
+                    });
+                  }
 
                   return ListView.builder(
                     controller: _chatScrollController,
@@ -10286,10 +10500,15 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                     itemCount: messages.length + (_chatBloc.generating ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (_chatBloc.generating && index == messages.length) {
-                        return Container(
-                          height: 54,
-                          width: 54,
-                          child: Lottie.asset('assets/animation/loader.json'),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Center(
+                            child: SizedBox(
+                              height: 54,
+                              width: 54,
+                              child: Lottie.asset('assets/animation/loader.json'),
+                            ),
+                          ),
                         );
                       }
                       final message = messages[index];
