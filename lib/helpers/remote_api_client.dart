@@ -240,4 +240,21 @@ class RemoteApiClient {
   Future<void> unblockUser(String username, String blockUsername) async {
     await _dio.delete('$_base/users/$username/block/$blockUsername');
   }
+
+  // FINANCIAL LITERACY TEXTBOOK
+  /// Fetch a specific Financial Literacy textbook unit with all chapters.
+  Future<Response> fetchFinancialTextbookUnit(int unitNumber) async {
+    try {
+      final res = await _dio.get(
+        '$_base/financial-literacy/textbook/unit/$unitNumber',
+      );
+      return res;
+    } catch (e) {
+      print('Error fetching textbook unit $unitNumber: $e');
+      return Response(
+        requestOptions: RequestOptions(path: ''),
+        statusCode: 500,
+      );
+    }
+  }
 }

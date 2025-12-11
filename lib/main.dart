@@ -33,6 +33,7 @@ import 'package:student_learning_app/screens/inbox_screen.dart';
 // import 'package:student_learning_app/utils/config.dart'; // Unused import
 import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
 import 'screens/financial_literacy_screen.dart';
+import 'screens/financial_textbook_screen.dart';
 
 /**
  * Main entry point for the EduQuest learning application.
@@ -5158,9 +5159,12 @@ class _LearnTabState extends State<LearnTab>
             currentTheme: widget.currentTheme,
             onTextBook: () {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(this.context).showSnackBar(
-                const SnackBar(
-                  content: Text('TextBook path coming soon.'),
+              Navigator.push(
+                this.context,
+                MaterialPageRoute(
+                  builder: (context) => FinancialTextbookScreen(
+                    currentTheme: widget.currentTheme,
+                  ),
                 ),
               );
             },
