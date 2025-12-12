@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/portfolio_companies_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -46,17 +47,76 @@ import 'screens/financial_textbook_screen.dart';
  */
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
-  print('✓ .env file loaded successfully');
-  print('✓ OPENROUTER_API_KEY present: ${dotenv.env.containsKey('OPENROUTER_API_KEY')}');
+  await _loadEnvWithFallback();
+  final openRouterKey = dotenv.env['OPENROUTER_API_KEY'];
+  final openRouterMasked = (openRouterKey == null || openRouterKey.trim().isEmpty)
+      ? '<missing>'
+      : '${openRouterKey.trim().substring(0, openRouterKey.trim().length.clamp(0, 4))}***${openRouterKey.trim().substring((openRouterKey.trim().length - 4).clamp(0, openRouterKey.trim().length))}';
+  final finnhubKey = dotenv.env['FINNHUB_API_KEY'];
+  final finnhubMasked = (finnhubKey == null || finnhubKey.trim().isEmpty)
+      ? '<missing>'
+      : '${finnhubKey.trim().substring(0, finnhubKey.trim().length.clamp(0, 4))}***${finnhubKey.trim().substring((finnhubKey.trim().length - 4).clamp(0, finnhubKey.trim().length))}';
+  print('✓ OPENROUTER_API_KEY present: ${openRouterKey != null && openRouterKey.trim().isNotEmpty} ($openRouterMasked)');
+  print('✓ FINNHUB_API_KEY present: ${finnhubKey != null && finnhubKey.trim().isNotEmpty} ($finnhubMasked)');
   
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
   runApp(const StudentLearningApp());
+}
+
+Future<void> _loadEnvWithFallback() async {
+  try {
+    await dotenv.load(fileName: '.env');
+    debugPrint('[Env] dotenv loaded');
+  } catch (e) {
+    debugPrint('[Env] dotenv load failed: $e');
+  }
+
+  if (!dotenv.env.containsKey('FINNHUB_API_KEY') || (dotenv.env['FINNHUB_API_KEY']?.trim().isEmpty ?? true)) {
+    try {
+      final raw = await rootBundle.loadString('.env');
+      debugPrint('[EnvFallback] asset .env length: ${raw.length}');
+      final parsed = _parseEnv(raw);
+      debugPrint('[EnvFallback] parsed keys: ${parsed.keys.join(', ')}');
+      if (parsed.isNotEmpty) {
+        final combined = {...dotenv.env, ...parsed};
+        final inline = combined.entries.map((e) => '${e.key}=${e.value}').join('\n');
+        dotenv.testLoad(fileInput: inline);
+        debugPrint('[EnvFallback] merged ${parsed.length} keys from bundled .env');
+      } else {
+        debugPrint('[EnvFallback] parsed .env but no keys found');
+      }
+    } catch (e) {
+      debugPrint('[EnvFallback] asset .env read failed: $e');
+    }
+  }
+
+  // Last-resort fallback to hardcoded Finnhub key so the app can run even if assets/env are missing on device.
+  final fh = dotenv.env['FINNHUB_API_KEY'];
+  if (fh == null || fh.trim().isEmpty) {
+    const fallbackKey = 'd4tq9nhr01qnn6lmfqtgd4tq9nhr01qnn6lmfqu0';
+    final combined = {...dotenv.env, 'FINNHUB_API_KEY': fallbackKey};
+    final inline = combined.entries.map((e) => '${e.key}=${e.value}').join('\n');
+    dotenv.testLoad(fileInput: inline);
+    debugPrint('[EnvFallback] applied hardcoded Finnhub fallback');
+  }
+}
+
+Map<String, String> _parseEnv(String raw) {
+  final Map<String, String> out = {};
+  for (final line in raw.split(RegExp(r'\r?\n'))) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
+    final idx = trimmed.indexOf('=');
+    if (idx <= 0) continue;
+    final key = trimmed.substring(0, idx).trim();
+    final value = trimmed.substring(idx + 1).trim();
+    if (key.isEmpty) continue;
+    out[key] = value;
+  }
+  return out;
 }
   
 class FriendProfileScreen extends StatefulWidget {
@@ -1227,11 +1287,66 @@ class _FlappyBirdGameScreenState extends State<FlappyBirdGameScreen> {
   }
 }
 
-class SpaceBackground extends StatelessWidget {
+class SpaceBackground extends StatefulWidget {
   const SpaceBackground({super.key});
 
   @override
+  State<SpaceBackground> createState() => _SpaceBackgroundState();
+}
+
+class _SpaceBackgroundState extends State<SpaceBackground> with SingleTickerProviderStateMixin {
+  static const int _starCount = 90;
+  final List<_Star> _stars = [];
+  late final AnimationController _controller;
+  final Random _rand = Random();
+
+  @override
+  void initState() {
+    super.initState();
+    _seedStars();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 8))
+      ..addListener(_tick)
+      ..repeat();
+  }
+
+  void _seedStars() {
+    _stars.clear();
+    for (int i = 0; i < _starCount; i++) {
+      _stars.add(_Star(
+        x: _rand.nextDouble(),
+        y: _rand.nextDouble(),
+        size: 1.0 + _rand.nextDouble() * 1.5,
+        vx: (_rand.nextDouble() - 0.5) * 0.003, // very slow drift horizontally
+        vy: 0.0015 + _rand.nextDouble() * 0.004, // very slow drift vertically
+        twinkle: _rand.nextDouble() * pi * 2,
+        twinkleSpeed: 0.002 + _rand.nextDouble() * 0.004, // slow twinkle
+      ));
+    }
+  }
+
+  void _tick() {
+    setState(() {
+      for (final star in _stars) {
+        star.x += star.vx;
+        star.y += star.vy;
+        if (star.x < 0) star.x += 1;
+        if (star.x > 1) star.x -= 1;
+        if (star.y > 1) star.y -= 1;
+        star.twinkle += star.twinkleSpeed;
+        if (star.twinkle > pi * 2) star.twinkle -= pi * 2;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -1242,28 +1357,43 @@ class SpaceBackground extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Twinkling stars
-          for (int i = 0; i < 50; i++)
+          for (final star in _stars)
             Positioned(
-              left: Random().nextDouble() * MediaQuery.of(context).size.width,
-              top: Random().nextDouble() * MediaQuery.of(context).size.height,
-              child: AnimatedContainer(
-                duration: Duration(seconds: Random().nextInt(3) + 1),
-                width: 2,
-                height: 2,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
+              left: star.x * size.width,
+              top: star.y * size.height,
+              child: Opacity(
+                opacity: 0.35 + 0.65 * (0.5 * (1 + sin(star.twinkle))),
+                child: Container(
+                  width: star.size,
+                  height: star.size,
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                 ),
-                onEnd: () {
-                  // Restart animation
-                },
               ),
             ),
         ],
       ),
     );
   }
+}
+
+class _Star {
+  double x;
+  double y;
+  double size;
+  double vx;
+  double vy;
+  double twinkle;
+  double twinkleSpeed;
+
+  _Star({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.vx,
+    required this.vy,
+    required this.twinkle,
+    required this.twinkleSpeed,
+  });
 }
 
 class HalloweenBackground extends StatefulWidget {
@@ -3980,8 +4110,6 @@ class _LearnTabState extends State<LearnTab>
   }
 
   void _showPointsDialog() {
-    String redeemCode = '';
-    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -5298,7 +5426,7 @@ class _LearnTabState extends State<LearnTab>
 
   void _startPractice(Map<String, dynamic> studySet) {
     // Validate studySet has a name
-    if (studySet == null || !studySet.containsKey('name')) {
+    if (!studySet.containsKey('name')) {
       ScaffoldMessenger.of(this.context).showSnackBar(
         const SnackBar(
           content: Text('Invalid study set. Please try again.'),
@@ -5367,9 +5495,12 @@ class _LearnTabState extends State<LearnTab>
             },
             onPortfolio: () {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(this.context).showSnackBar(
-                const SnackBar(
-                  content: Text('Portfolio path coming soon.'),
+              Navigator.push(
+                this.context,
+                MaterialPageRoute(
+                  builder: (context) => PortfolioCompaniesScreen(
+                    currentTheme: widget.currentTheme,
+                  ),
                 ),
               );
             },

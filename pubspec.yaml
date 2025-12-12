@@ -11,12 +11,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.2.0
+  flutter_dotenv: ^5.1.0
+  fl_chart: ^0.69.0
   # sqflite: ^2.3.0  # REMOVED: Using MongoDB Atlas only
   # path: ^1.8.3  # REMOVED: No longer needed without sqflite
   shared_preferences: ^2.2.2
   flutter_bloc: ^8.1.4
   dio: ^5.4.1
-  http: ^1.1.0
+  # http duplicated above, keep newest only
   html: ^0.15.4
   confetti: ^0.7.0
   lottie: ^2.7.0
@@ -32,7 +35,7 @@ dependencies:
   path_provider: ^2.1.2
   pdfx: ^2.9.1
   image_picker: ^1.1.2
-  flutter_dotenv: ^5.1.0
+  # flutter_dotenv duplicated above, keep single entry
   # clerk_flutter: ^0.0.13-beta  # REMOVED: Email verification removed
   # clerk_auth: ^0.0.13-beta  # REMOVED: Email verification removed
 
