@@ -257,4 +257,80 @@ class RemoteApiClient {
       );
     }
   }
+
+  // ROBOTICS CONTENT
+  Future<Map<String, dynamic>?> getRoboticsCourse() async {
+    try {
+      final res = await _dio.get('$_base/robotics/courses/robotics');
+      if (res.statusCode == 200 && res.data is Map) {
+        return res.data as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching Robotics course: $e');
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getRoboticsModules(
+    String courseId, {
+    String? difficulty,
+    List<String>? tags,
+    List<String>? modes,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    try {
+      final params = <String, dynamic>{'page': page, 'pageSize': pageSize};
+      if (difficulty != null) params['difficulty'] = difficulty;
+      if (tags != null && tags.isNotEmpty) params['tags'] = tags.join(',');
+      if (modes != null && modes.isNotEmpty) params['modes'] = modes.join(',');
+
+      final res = await _dio.get('$_base/robotics/modules/$courseId', queryParameters: params);
+      if (res.statusCode == 200 && res.data is List) {
+        return List<Map<String, dynamic>>.from(res.data);
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching Robotics modules: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getRoboticsAssessments(
+    String moduleId, {
+    String? type,
+    String? difficulty,
+    List<String>? tags,
+    List<String>? modes,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    try {
+      final params = <String, dynamic>{'page': page, 'pageSize': pageSize};
+      if (type != null) params['type'] = type;
+      if (difficulty != null) params['difficulty'] = difficulty;
+      if (tags != null && tags.isNotEmpty) params['tags'] = tags.join(',');
+      if (modes != null && modes.isNotEmpty) params['modes'] = modes.join(',');
+
+      final res = await _dio.get('$_base/robotics/assessments/$moduleId', queryParameters: params);
+      if (res.statusCode == 200 && res.data is List) {
+        return List<Map<String, dynamic>>.from(res.data);
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching Robotics assessments: $e');
+      return [];
+    }
+  }
+
+  Future<bool> syncRobotics(Map<String, dynamic> payload) async {
+    try {
+      final res = await _dio.post('$_base/robotics/sync/robotics', data: payload);
+      return res.statusCode == 200 && res.data is Map && res.data['ok'] == true;
+    } catch (e) {
+      print('Error syncing Robotics content: $e');
+      return false;
+    }
+  }
 }

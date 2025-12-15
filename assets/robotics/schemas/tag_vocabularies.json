@@ -1,0 +1,9 @@
+{
+  "difficulty": ["Beginner", "Intermediate", "Advanced"],
+  "cognitive_level": ["recall", "concept", "application"],
+  "mode_suitability": ["Lightning", "Survival", "Memory Master", "Puzzle Quest", "Treasure Hunt", "FRQ"],
+  "domains": [
+    "Foundations", "Mechanics", "Electronics", "Sensors", "Control", "Programming", "Kinematics", "ROS", "Mobile Robots", "Manipulators", "Vision", "Autonomy", "Safety & Ethics", "Competition Prep"
+  ],
+  "time_estimates": ["15m", "25m", "30m", "45m", "60m", "90m"]
+}

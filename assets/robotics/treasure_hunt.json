@@ -1,0 +1,13 @@
+{
+  "schema": {
+    "id": "string",
+    "theme": "string",
+    "clue": "string",
+    "links": {"module": "string", "type": "MCQ|Concept"},
+    "difficulty": "Beginner|Intermediate|Advanced"
+  },
+  "items": [
+    {"id": "TH-AR-001", "theme": "Arctic", "clue": "In the frozen hush, which sensor sees distance in light?", "links": {"module": "Sensors", "type": "MCQ"}, "difficulty": "Beginner"},
+    {"id": "TH-SC-002", "theme": "Space", "clue": "To hold a line among stars, which control fights error over time?", "links": {"module": "Control", "type": "Concept"}, "difficulty": "Intermediate"}
+  ]
+}

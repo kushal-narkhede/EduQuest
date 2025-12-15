@@ -1,0 +1,34 @@
+{
+  "schema": {
+    "id": "string",
+    "module": "string",
+    "title": "string",
+    "summary": "string",
+    "figures": [{"caption": "string", "description": "string"}],
+    "formulas": ["string"],
+    "examples": [{"title": "string", "walkthrough": "string"}],
+    "tryIt": ["string"]
+  },
+  "chapters": [
+    {
+      "id": "CH-M1",
+      "module": "Foundations",
+      "title": "Robot Types & Subsystems",
+      "summary": "Robotics spans mobile platforms, manipulators, and specialized systems. Each robot integrates mechanical structure (chassis, joints), actuators that produce motion, sensors that measure state, and controllers that decide actions. Coordinate frames define how we describe positions and orientations, enabling consistent reasoning about motion. This chapter introduces the vocabulary and mental models to analyze any robot you encounter.",
+      "figures": [{"caption": "Subsystems diagram", "description": "Annotated diagram showing chassis, actuators, sensors, and controller blocks."}],
+      "formulas": ["Pose = {x, y, θ}", "Transform T_ab: p_b = T_ab p_a"],
+      "examples": [{"title": "Frame transform", "walkthrough": "Given local frame pose and a global transform, compute global position of a sensor."}],
+      "tryIt": ["Identify subsystems on a household robot.", "Define local vs global frames for a wheeled robot."]
+    },
+    {
+      "id": "CH-M2",
+      "module": "Mechanics",
+      "title": "Torque, Speed, and Gear Ratios",
+      "summary": "Mechanical power is the product of torque and rotational speed. Gear trains trade torque for speed according to ratio, impacting acceleration and hill-climbing capability. Backlash, efficiency, and traction influence real-world performance. This chapter builds intuition and gives simple calculations for selecting gear ratios and chassis layouts.",
+      "figures": [{"caption": "Torque-speed curve", "description": "Idealized motor curve showing stall torque and no-load speed."}],
+      "formulas": ["T_out = T_in × Ratio", "ω_out = ω_in / Ratio"],
+      "examples": [{"title": "Selecting ratio", "walkthrough": "Compute required ratio to achieve target torque, then estimate resulting speed."}],
+      "tryIt": ["Measure wheel traction on different surfaces.", "Estimate output speed for a chosen gearbox."]
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "id": "ROB-101",
+  "name": "Robotics",
+  "description": "A comprehensive, gamified Robotics course for EduQuest.",
+  "gamification": {
+    "points": 100,
+    "achievements": ["Gear Guru", "Control Sage", "Sensor Scout"],
+    "powerUps": {"50_50": true, "time_freeze": true, "skip_frq": false}
+  },
+  "modules": [
+    {
+      "id": "M1",
+      "title": "Foundations and Mechanics",
+      "description": "Core concepts: mechanics, electronics, sensors, control basics.",
+      "lessons": [
+        {
+          "id": "L1",
+          "title": "Introduction to Robotics & Mechanics",
+          "objectives": [
+            {
+              "id": "O1",
+              "text": "Define robotics and core subsystems",
+              "tags": {
+                "domain": "Foundations",
+                "subtopic": "Mechanics",
+                "difficulty": "Beginner",
+                "modes": ["Lightning", "Memory Master", "Puzzle Quest"],
+                "estimatedTime": "30m",
+                "prerequisites": [],
+                "standards": ["ENG-Mechanics-01"]
+              }
+            },
+            {
+              "id": "O2",
+              "text": "Explain torque vs speed trade-offs",
+              "tags": {
+                "domain": "Foundations",
+                "subtopic": "Mechanics",
+                "difficulty": "Beginner",
+                "modes": ["Lightning", "Memory Master", "Puzzle Quest"],
+                "estimatedTime": "30m",
+                "prerequisites": [],
+                "standards": ["ENG-Mechanics-01"]
+              }
+            }
+          ],
+          "assessments": [
+            {
+              "id": "Q1",
+              "type": "MCQ",
+              "prompt": "Which gear setup increases torque?",
+              "options": ["High gear ratio", "Low gear ratio", "Direct drive", "Belt drive"],
+              "correctAnswer": "High gear ratio",
+              "tags": {
+                "domain": "Foundations",
+                "subtopic": "Mechanics",
+                "difficulty": "Beginner",
+                "modes": ["Lightning", "Memory Master", "Puzzle Quest"],
+                "estimatedTime": "30m",
+                "prerequisites": [],
+                "standards": ["ENG-Mechanics-01"]
+              }
+            },
+            {
+              "id": "FRQ1",
+              "type": "FRQ",
+              "prompt": "Design a simple PID loop for motor speed control and justify parameter choices.",
+              "rubric": "Rubric: Explains P/I/D roles, tuning approach, and stability considerations.",
+              "tags": {
+                "domain": "Programming",
+                "subtopic": "Control",
+                "difficulty": "Intermediate",
+                "modes": ["FRQ"],
+                "estimatedTime": "45m",
+                "prerequisites": ["Basics of loops"],
+                "standards": ["ENG-Software-02"]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "course": {
+    "id": "ROB-101",
+    "title": "Robotics",
+    "shortDescription": "Hands-on introduction to building, programming, and controlling robots.",
+    "longDescription": "Coverage of mechanical design, electronics, sensing, control, kinematics, robot programming, ROS, mobile robots, manipulators, computer vision, autonomy, safety, ethics, and competition prep.",
+    "audience": "High school to early undergraduate; no prior robotics required; basic algebra and programming recommended.",
+    "estimatedDuration": "40–60 hours; self-paced with modular lessons.",
+    "prerequisites": [
+      "Basic programming (Python preferred)",
+      "Algebra",
+      "Basic physics (forces, torque)",
+      "Circuit fundamentals"
+    ],
+    "outcomes": [
+      "Describe and differentiate core robot subsystems (mechanical, electrical, sensing, control)",
+      "Implement closed-loop control for a differential-drive mobile robot",
+      "Tune a PID controller and justify parameter choices",
+      "Model forward kinematics for a 2-DOF arm",
+      "Apply basic inverse kinematics to reach a target pose",
+      "Integrate IMU + encoder fusion for improved heading estimation",
+      "Build a finite state machine to coordinate robot behaviors",
+      "Use ROS nodes and topics to publish/subscribe sensor and actuator data",
+      "Simulate a mobile robot and validate path following in a sandbox environment",
+      "Develop simple computer vision pipelines (thresholding, edges, feature tracking)",
+      "Explain and apply safety rules and fail-safes in robot design",
+      "Plan and execute a competition-ready strategy with testing and iteration"
+    ],
+    "gamification": {
+      "points": 100,
+      "achievements": ["Gear Guru", "Control Sage", "Sensor Scout", "Vision Voyager", "ROS Ranger"],
+      "powerUps": {
+        "50_50": true,
+        "time_freeze": true,
+        "skip_frq": false
+      }
+    }
+  },
+  "modules": [
+    {
+      "id": "M1",
+      "title": "Foundations",
+      "summary": "Robot types, components, coordinate frames, and core concepts.",
+      "glossary": [
+        {"term": "Actuator", "definition": "Device that converts energy to motion (e.g., motor)."},
+        {"term": "Sensor", "definition": "Device that measures physical quantities (e.g., IMU)."},
+        {"term": "Coordinate Frame", "definition": "Reference axes used to describe positions and orientations."},
+        {"term": "DOF", "definition": "Degrees of freedom available for robot movement."},
+        {"term": "Chassis", "definition": "Structural framework of a robot."},
+        {"term": "Pose", "definition": "Position and orientation of a robot or part."},
+        {"term": "End Effector", "definition": "Tool attached to a robot arm for interacting with environment."},
+        {"term": "Autonomy", "definition": "Ability to operate independently without human intervention."},
+        {"term": "Open Loop", "definition": "Control without feedback."},
+        {"term": "Closed Loop", "definition": "Control using feedback signals."}
+      ],
+      "readings": [
+        "Open-source primer on robotics components",
+        "Intro to coordinate frames (OER text)"
+      ],
+      "practice": [
+        "Identify subsystems on a sample robot",
+        "Define local vs global frames for a mobile robot"
+      ],
+      "lessons": [
+        {
+          "id": "L1.1",
+          "title": "Robot Types & Subsystems",
+          "difficulty": "Beginner",
+          "objectives": [
+            "By the end, students can list major robot classes and subsystems",
+            "By the end, students can describe roles of actuators and sensors"
+          ],
+          "assessments": [
+            {"type": "MCQ", "prompt": "Which is an example of a robot actuated joint?", "options": ["DC motor", "LiDAR", "IMU", "Camera"], "correctAnswer": "DC motor"},
+            {"type": "FRQ", "prompt": "Explain why coordinate frames are essential in robotics and give an example."}
+          ]
+        },
+        {
+          "id": "L1.2",
+          "title": "Coordinate Frames",
+          "difficulty": "Beginner",
+          "objectives": [
+            "By the end, students can define pose and express positions in local frames",
+            "By the end, students can translate between local and global coordinates"
+          ],
+          "assessments": [
+            {"type": "Concept", "prompt": "Define pose and distinguish between position and orientation."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "title": "Mechanics",
+      "summary": "Forces, torque, gear ratios, drivetrains, and chassis design.",
+      "glossary": [
+        {"term": "Torque", "definition": "Rotational force causing angular acceleration."},
+        {"term": "Gear Ratio", "definition": "Ratio of driven to driving gear teeth."},
+        {"term": "Backlash", "definition": "Lost motion due to gaps between gear teeth."},
+        {"term": "Stall", "definition": "Condition where motor cannot rotate under load."},
+        {"term": "Traction", "definition": "Grip between wheels and ground."}
+      ],
+      "practice": [
+        "Compute torque and speed trade-offs for a gearbox",
+        "Design a stable chassis layout for a given payload"
+      ],
+      "lessons": [
+        {
+          "id": "L2.1",
+          "title": "Torque & Speed Trade-offs",
+          "difficulty": "Beginner",
+          "objectives": [
+            "By the end, students can explain torque-speed curves",
+            "By the end, students can select gear ratios for a target performance"
+          ],
+          "assessments": [
+            {"type": "MCQ", "prompt": "Which setup increases torque?", "options": ["High gear ratio", "Low gear ratio", "Direct drive", "Belt drive"], "correctAnswer": "High gear ratio"}
+          ]
+        },
+        {
+          "id": "L2.2",
+          "title": "Chassis Design",
+          "difficulty": "Intermediate",
+          "objectives": [
+            "By the end, students can propose chassis designs minimizing backlash and maximizing traction"
+          ],
+          "assessments": [
+            {"type": "FRQ", "prompt": "Propose a chassis design for uneven terrain and justify component choices."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M3",
+      "title": "Electronics",
+      "summary": "Power, motors (DC, servo, stepper), drivers, PWM.",
+      "glossary": [
+        {"term": "PWM", "definition": "Pulse width modulation for controlling motor speed."},
+        {"term": "H-Bridge", "definition": "Motor driver enabling bidirectional control."},
+        {"term": "ESC", "definition": "Electronic speed controller for brushless motors."}
+      ],
+      "lessons": [
+        {"id": "L3.1", "title": "Power & Drivers", "difficulty": "Beginner", "objectives": ["By the end, students can wire a DC motor with an H-bridge and explain PWM control"], "assessments": [{"type": "MCQ", "prompt": "PWM controls motor speed by?", "options": ["Changing voltage", "Duty cycle modulation", "Changing frequency only", "Current limiting"], "correctAnswer": "Duty cycle modulation"}]},
+        {"id": "L3.2", "title": "Motor Types", "difficulty": "Intermediate", "objectives": ["By the end, students can compare DC, servo, and stepper motors for task suitability"], "assessments": [{"type": "Concept", "prompt": "Contrast servo vs stepper control characteristics."}]}
+      ]
+    },
+    {
+      "id": "M4",
+      "title": "Sensors",
+      "summary": "Encoders, IMU, ultrasonic/LiDAR basics, camera.",
+      "glossary": [
+        {"term": "IMU", "definition": "Inertial measurement unit measuring acceleration and rotation."},
+        {"term": "Encoder", "definition": "Sensor measuring rotational position or speed."},
+        {"term": "LiDAR", "definition": "Light detection and ranging for distance measurement."}
+      ],
+      "lessons": [
+        {"id": "L4.1", "title": "IMU & Encoders", "difficulty": "Beginner", "objectives": ["By the end, students can integrate IMU and encoders for heading estimation"], "assessments": [{"type": "FRQ", "prompt": "Describe a fusion approach combining IMU yaw rates and wheel encoders."}]},
+        {"id": "L4.2", "title": "Range Sensors", "difficulty": "Intermediate", "objectives": ["By the end, students can evaluate ultrasonic vs LiDAR for obstacle detection"], "assessments": [{"type": "MCQ", "prompt": "LiDAR provides?", "options": ["Velocity", "Distance", "Temperature", "Humidity"], "correctAnswer": "Distance"}]}
+      ]
+    },
+    {
+      "id": "M5",
+      "title": "Control",
+      "summary": "Open vs closed loop, PID, tuning methods.",
+      "glossary": [
+        {"term": "PID", "definition": "Proportional-Integral-Derivative control method."},
+        {"term": "Gain", "definition": "Scaling factor in control law."}
+      ],
+      "lessons": [
+        {"id": "L5.1", "title": "Open vs Closed Loop", "difficulty": "Beginner", "objectives": ["By the end, students can contrast open vs closed loop control"], "assessments": [{"type": "Concept", "prompt": "Give an example of closed-loop speed control."}]},
+        {"id": "L5.2", "title": "PID Tuning", "difficulty": "Intermediate", "objectives": ["By the end, students can tune PID gains and justify choices"], "assessments": [{"type": "FRQ", "prompt": "Explain a PID tuning strategy and stability considerations."}]}
+      ]
+    },
+    {
+      "id": "M6",
+      "title": "Programming",
+      "summary": "Python/pseudo-code; state machines; event loops.",
+      "lessons": [
+        {"id": "L6.1", "title": "Python Basics for Robotics", "difficulty": "Beginner", "objectives": ["By the end, students can implement an event loop"], "assessments": [{"type": "Coding FRQ", "prompt": "Write a loop reacting to sensor events."}]},
+        {"id": "L6.2", "title": "Finite State Machines", "difficulty": "Intermediate", "objectives": ["By the end, students can design and implement a simple FSM"], "assessments": [{"type": "FRQ", "prompt": "Draw an FSM for a line-following robot and implement transitions."}]}
+      ]
+    },
+    {
+      "id": "M7",
+      "title": "Kinematics",
+      "summary": "Forward/inverse for mobile robots and simple arms.",
+      "lessons": [
+        {"id": "L7.1", "title": "Differential Drive Kinematics", "difficulty": "Intermediate", "objectives": ["By the end, students can model differential drive motion"], "assessments": [{"type": "Problem Set", "prompt": "Derive the relationship between wheel speeds and robot velocity."}]},
+        {"id": "L7.2", "title": "2-DOF Arm Kinematics", "difficulty": "Advanced", "objectives": ["By the end, students can compute forward kinematics for a 2-DOF arm"], "assessments": [{"type": "FRQ", "prompt": "Compute the end-effector pose for given joint angles."}]}
+      ]
+    },
+    {
+      "id": "M8",
+      "title": "ROS Basics",
+      "summary": "Nodes, topics, messages; simulated environment intro.",
+      "lessons": [
+        {"id": "L8.1", "title": "ROS Nodes & Topics", "difficulty": "Intermediate", "objectives": ["By the end, students can publish/subscribe to topics"], "assessments": [{"type": "Concept", "prompt": "Explain how messages are passed in ROS."}]},
+        {"id": "L8.2", "title": "Simulation Intro", "difficulty": "Intermediate", "objectives": ["By the end, students can run a robot in simulation"], "assessments": [{"type": "Coding FRQ", "prompt": "Set up a simulation and validate path following."}]}
+      ]
+    },
+    {
+      "id": "M9",
+      "title": "Mobile Robots",
+      "summary": "Differential drive, path following.",
+      "lessons": [
+        {"id": "L9.1", "title": "Path Following", "difficulty": "Intermediate", "objectives": ["By the end, students can implement a simple path follower"], "assessments": [{"type": "Problem Set", "prompt": "Design a controller for following a set of waypoints."}]}
+      ]
+    },
+    {
+      "id": "M10",
+      "title": "Manipulators",
+      "summary": "2–3 DOF arms, grasping strategies.",
+      "lessons": [
+        {"id": "L10.1", "title": "Grasping Basics", "difficulty": "Intermediate", "objectives": ["By the end, students can evaluate grasp strategies for objects"], "assessments": [{"type": "Concept", "prompt": "Compare pinch vs power grasp for sample tasks."}]}
+      ]
+    },
+    {
+      "id": "M11",
+      "title": "Vision",
+      "summary": "Thresholding, edge detection, simple feature tracking.",
+      "lessons": [
+        {"id": "L11.1", "title": "Thresholding & Edges", "difficulty": "Beginner", "objectives": ["By the end, students can implement basic thresholding and edge detection"], "assessments": [{"type": "Coding FRQ", "prompt": "Write code to threshold and detect edges in a sample image."}]},
+        {"id": "L11.2", "title": "Feature Tracking", "difficulty": "Intermediate", "objectives": ["By the end, students can track simple features across frames"], "assessments": [{"type": "Concept", "prompt": "Explain the trade-offs of simple vs advanced tracking methods."}]}
+      ]
+    },
+    {
+      "id": "M12",
+      "title": "Autonomy",
+      "summary": "Localization, mapping basics, behavior trees.",
+      "lessons": [
+        {"id": "L12.1", "title": "Localization Concepts", "difficulty": "Advanced", "objectives": ["By the end, students can explain basic localization and mapping approaches"], "assessments": [{"type": "FRQ", "prompt": "Discuss the role of sensor fusion in localization."}]},
+        {"id": "L12.2", "title": "Behavior Trees", "difficulty": "Intermediate", "objectives": ["By the end, students can design a behavior tree for a scenario"], "assessments": [{"type": "Problem Set", "prompt": "Build a behavior tree for a search-and-rescue task."}]}
+      ]
+    },
+    {
+      "id": "M13",
+      "title": "Safety & Ethics",
+      "summary": "Operating rules, fail-safes, responsible design.",
+      "lessons": [
+        {"id": "L13.1", "title": "Operating Safety", "difficulty": "Beginner", "objectives": ["By the end, students can list safety rules and fail-safes"], "assessments": [{"type": "Concept", "prompt": "Explain why fail-safes are essential in robot design."}]},
+        {"id": "L13.2", "title": "Ethics in Robotics", "difficulty": "Beginner", "objectives": ["By the end, students can discuss responsible robotics design principles"], "assessments": [{"type": "FRQ", "prompt": "Discuss ethical considerations in autonomous systems deployment."}]}
+      ]
+    },
+    {
+      "id": "M14",
+      "title": "Competition Prep",
+      "summary": "Strategy, design trade-offs, testing.",
+      "lessons": [
+        {"id": "L14.1", "title": "Strategy & Testing", "difficulty": "Intermediate", "objectives": ["By the end, students can plan a competition strategy and testing regimen"], "assessments": [{"type": "FRQ", "prompt": "Outline a test plan covering mechanical, electrical, and software subsystems."}]}
+      ]
+    }
+  ],
+  "standards": {
+    "ENG-Mechanics-01": "Apply fundamentals of forces, torque, and mechanical power.",
+    "ENG-Software-02": "Design state machines and control loops with justifications.",
+    "ENG-Sensing-03": "Integrate and interpret sensor data (IMU, encoder, range sensors).",
+    "NGSS-P3": "Planning and carrying out investigations.",
+    "NGSS-P4": "Analyzing and interpreting data.",
+    "NGSS-P5": "Using mathematics and computational thinking."
+  }
+}

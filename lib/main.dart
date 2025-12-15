@@ -35,6 +35,7 @@ import 'package:student_learning_app/screens/inbox_screen.dart';
 import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
 import 'screens/financial_literacy_screen.dart';
 import 'screens/financial_textbook_screen.dart';
+import 'screens/robotics_screen.dart';
 
 /**
  * Main entry point for the EduQuest learning application.
@@ -5441,6 +5442,7 @@ class _LearnTabState extends State<LearnTab>
     bool isAPCompSciA = studySetName == 'AP Computer Science A';
     bool isSATReadingWriting = studySetName == 'SAT Reading & Writing';
     bool isFinancialLiteracy = studySetName == 'Financial Literacy';
+    bool isRobotics = studySetName.startsWith('Robotics');
 
     if (isAPCompSciA) {
       // Show practice mode selection for AP Computer Science A
@@ -5503,6 +5505,37 @@ class _LearnTabState extends State<LearnTab>
                   ),
                 ),
               );
+            },
+          ),
+        ),
+      ).then((_) {
+        // Refresh points when returning from practice
+        _loadUserData();
+      });
+    } else if (isRobotics) {
+      // Show the dedicated Robotics quiz screen
+      Navigator.push(
+        this.context,
+        MaterialPageRoute(
+          builder: (context) => RoboticsScreen(
+            username: widget.username,
+            currentTheme: widget.currentTheme,
+            onQuizComplete: () {
+              _loadUserData();
+            },
+            onMcqSelected: () {
+              Navigator.push(
+                this.context,
+                MaterialPageRoute(
+                  builder: (context) => PracticeModeScreen(
+                    studySet: studySet,
+                    username: widget.username,
+                    currentTheme: widget.currentTheme,
+                  ),
+                ),
+              ).then((_) {
+                _loadUserData();
+              });
             },
           ),
         ),
@@ -6944,6 +6977,16 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   bool _showAnswer = false;
   File? _userProfileImage;
 
+  // Derived flags
+  bool get isRobotics {
+    try {
+      final name = widget.studySet['name']?.toString() ?? '';
+      return name.startsWith('Robotics');
+    } catch (_) {
+      return false;
+    }
+  }
+
   // SAT question parsing variables
   String? _aiResponse;
   bool _showParseButton = false;
@@ -7921,20 +7964,24 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
     // Handle different game modes
     switch (_selectedMode) {
       case 'classic':
-        // Standard quiz mode
-        setState(() {
-          _showModeSelection = false;
-          _showQuizArea = true;
-          _showScoreSummary = false;
-          _currentQuestionIndex = 0;
-          _correctAnswers = 0;
-          // Reset powerup states for new session
-          _skipUsed = false;
-          _fiftyFiftyUsed = false;
-          _doublePointsActive = false;
-          _extraTimeUsed = false;
-          _removedOptions = [];
-        });
+        // Standard quiz mode; for Robotics, generate AI questions first
+        if (isRobotics) {
+          _startRoboticsAiMcq(context);
+        } else {
+          setState(() {
+            _showModeSelection = false;
+            _showQuizArea = true;
+            _showScoreSummary = false;
+            _currentQuestionIndex = 0;
+            _correctAnswers = 0;
+            // Reset powerup states for new session
+            _skipUsed = false;
+            _fiftyFiftyUsed = false;
+            _doublePointsActive = false;
+            _extraTimeUsed = false;
+            _removedOptions = [];
+          });
+        }
         break;
       case 'timed':
         // Navigate to Lightning Mode screen
@@ -7971,6 +8018,201 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           _extraTimeUsed = false;
           _removedOptions = [];
         });
+    }
+  }
+
+  void _startRoboticsAiMcq(BuildContext context) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                SizedBox(height: 12),
+                Text('Generating questions...', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      final questions = await _generateRoboticsAiQuestions();
+      Navigator.of(context).pop();
+      if (questions.isNotEmpty) {
+        setState(() {
+          _questions = questions;
+          // Set count bounded by generated list and selected slider
+          _questionCount = questions.length < _questionCount ? questions.length : _questionCount;
+          _showModeSelection = false;
+          _showQuizArea = true;
+          _showScoreSummary = false;
+          _currentQuestionIndex = 0;
+          _correctAnswers = 0;
+          _skipUsed = false;
+          _fiftyFiftyUsed = false;
+          _doublePointsActive = false;
+          _extraTimeUsed = false;
+          _removedOptions = [];
+        });
+      } else {
+        // Fallback: keep existing behavior
+        setState(() {
+          _showModeSelection = false;
+          _showQuizArea = true;
+          _showScoreSummary = false;
+        });
+      }
+    } catch (e) {
+      Navigator.of(context).pop();
+      // Fallback to default behavior
+      setState(() {
+        _showModeSelection = false;
+        _showQuizArea = true;
+        _showScoreSummary = false;
+      });
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _generateRoboticsAiQuestions() async {
+    final count = _questionCount.clamp(1, 100);
+    final prompt = 'Generate exactly $count multiple choice questions about robotics, automation, sensors, motion control, embedded systems, and practical build tradeoffs.\nEach question must be in this exact format with square brackets and six comma-separated fields:\n[question text, option A, option B, option C, option D, correct answer]\nDo not add numbering, explanations, or any extra text. Randomize correct answers. Keep the content at high-school robotics competition level.';
+
+    // Helper to request questions and parse
+    Future<List<Map<String, dynamic>>> request(String p, int target) async {
+      _chatBloc.add(ChatClearHistoryEvent());
+      final completer = Completer<List<Map<String, dynamic>>>();
+      late final StreamSubscription sub;
+      sub = _chatBloc.stream.listen((state) async {
+        if (state is ChatSuccessState && state.messages.isNotEmpty) {
+          final last = state.messages.lastWhere(
+            (m) => m.role == 'model',
+            orElse: () => ChatMessageModel(role: '', parts: []),
+          );
+          if (last.role.isNotEmpty && last.parts.isNotEmpty) {
+            final parsed = _parseRoboticsAiResponse(last.parts.first.text, target);
+            completer.complete(parsed);
+            await sub.cancel();
+            return;
+          }
+        }
+        if (state is ChatErrorState) {
+          completer.complete(<Map<String, dynamic>>[]);
+          await sub.cancel();
+        }
+      });
+      _chatBloc.add(ChatGenerationNewTextMessageEvent(inputMessage: p));
+      return completer.future.timeout(const Duration(seconds: 45), onTimeout: () => <Map<String, dynamic>>[]);
+    }
+
+    // Try up to 3 attempts to reach requested count
+    List<Map<String, dynamic>> all = await request(prompt, count);
+    int attempts = 1;
+    while (all.length < count && attempts < 3) {
+      final remaining = count - all.length;
+      final followUp = 'You generated ${all.length} questions. Now generate exactly $remaining more in the SAME bracketed format without repeating previous questions.\nFormat reminder: [question text, option A, option B, option C, option D, correct answer]. No numbering or explanations.';
+      final more = await request(followUp, remaining);
+      // Deduplicate on question_text
+      final existing = all.map((q) => q['question_text']?.toString() ?? '').toSet();
+      for (final q in more) {
+        final qt = q['question_text']?.toString() ?? '';
+        if (!existing.contains(qt)) {
+          all.add(q);
+          existing.add(qt);
+        }
+        if (all.length >= count) break;
+      }
+      attempts++;
+    }
+    return all.length > count ? all.sublist(0, count) : all;
+  }
+
+  List<Map<String, dynamic>> _parseRoboticsAiResponse(String aiResponse, int target) {
+    final lines = aiResponse.split('\n');
+    final questionLines = <String>[];
+    for (final raw in lines) {
+      final line = raw.trim();
+      if (line.startsWith('[') && line.endsWith(']')) {
+        questionLines.add(line);
+      }
+    }
+
+    final parsed = <Map<String, dynamic>>[];
+    for (final q in questionLines) {
+      final map = _parseBracketQuestion(q);
+      if (map != null) parsed.add(map);
+      if (parsed.length >= target) break;
+    }
+
+    if (parsed.isEmpty) {
+      // Try double-newline blocks
+      for (final block in aiResponse.split('\n\n')) {
+        final map = _parseBracketQuestion(block.trim());
+        if (map != null) parsed.add(map);
+        if (parsed.length >= target) break;
+      }
+    }
+
+    if (parsed.length > target) {
+      return parsed.sublist(0, target);
+    }
+    return parsed;
+  }
+
+  Map<String, dynamic>? _parseBracketQuestion(String line) {
+    try {
+      String clean = line.endsWith(',') ? line.substring(0, line.length - 1) : line;
+      if (!clean.startsWith('[') || !clean.endsWith(']')) return null;
+      final content = clean.substring(1, clean.length - 1);
+      final parts = <String>[];
+      final buf = StringBuffer();
+      bool inQuotes = false;
+      for (int i = 0; i < content.length; i++) {
+        final ch = content[i];
+        if (ch == '"') {
+          inQuotes = !inQuotes;
+          buf.write(ch);
+        } else if (ch == ',' && !inQuotes) {
+          parts.add(buf.toString().trim());
+          buf.clear();
+        } else {
+          buf.write(ch);
+        }
+      }
+      parts.add(buf.toString().trim());
+
+      for (int i = 0; i < parts.length; i++) {
+        if (parts[i].startsWith('"') && parts[i].endsWith('"')) {
+          parts[i] = parts[i].substring(1, parts[i].length - 1);
+        }
+      }
+
+      if (parts.length == 6) {
+        final questionText = parts[0];
+        final options = [parts[1], parts[2], parts[3], parts[4]];
+        final correct = parts[5];
+        return {
+          'question_text': questionText,
+          'options': options.join('|'),
+          'correct_answer': correct,
+        };
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -9159,12 +9401,12 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                                         ),
                                         child: Slider(
                                           value: _questionCount
-                                              .clamp(1, _questions.length)
+                                              .clamp(1, isRobotics ? 100 : _questions.length)
                                               .toDouble(),
                                           min: 1.0,
-                                          max: _questions.length.toDouble(),
-                                          divisions: _questions.length > 1
-                                              ? _questions.length - 1
+                                          max: isRobotics ? 100.0 : _questions.length.toDouble(),
+                                          divisions: (isRobotics ? 100 : _questions.length) > 1
+                                              ? (isRobotics ? 100 : _questions.length) - 1
                                               : 1,
                                           label: '$_questionCount',
                                           onChanged: (value) {

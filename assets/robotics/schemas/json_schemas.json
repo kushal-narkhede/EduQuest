@@ -1,0 +1,65 @@
+{
+  "course.json": {
+    "id": "string",
+    "title": "string",
+    "shortDescription": "string",
+    "longDescription": "string",
+    "audience": "string",
+    "estimatedDuration": "string",
+    "prerequisites": ["string"],
+    "outcomes": ["string"],
+    "tags": {"domains": ["string"], "difficulty": "Beginner|Intermediate|Advanced", "modes": ["string"], "time": "string"},
+    "metadata": {"version": "number", "last_updated": "ISODate"}
+  },
+  "modules.json": {
+    "modules": [{
+      "id": "string",
+      "courseId": "string",
+      "title": "string",
+      "summary": "string",
+      "glossary": [{"term": "string", "definition": "string"}],
+      "tags": {"domains": ["string"], "difficulty": "Beginner|Intermediate|Advanced", "modes": ["string"], "time": "string"},
+      "metadata": {"version": "number", "last_updated": "ISODate"}
+    }]
+  },
+  "assessments.json": {
+    "items": [{
+      "id": "string",
+      "moduleId": "string",
+      "lesson": "string",
+      "type": "MCQ|Concept|FRQ|CodingFRQ|ProblemSet|Treasure",
+      "prompt": "string",
+      "options": ["string"],
+      "correct": "string",
+      "rationale": {"correct": "string", "distractors": {"A": "string", "B": "string", "C": "string", "D": "string"}},
+      "rubric": {"criteria": ["string"], "scale": "0-4|0-6", "levels": {"0": "string", "1": "string", "2": "string", "3": "string", "4": "string"}},
+      "tests": [{"name": "string", "input": {}, "expected": {}, "tolerance": "number|optional"}],
+      "tags": {"difficulty": "Beginner|Intermediate|Advanced", "cognitive_level": "recall|concept|application", "modes": ["string"], "domains": ["string"], "time": "string"},
+      "powerUps": {"fiftyFiftyEligible": "boolean", "skipAllowed": "boolean", "doublePointsAllowed": "boolean", "timeFreezeAllowed": "boolean"},
+      "metadata": {"version": "number", "last_updated": "ISODate"}
+    }]
+  },
+  "game_links.json": {
+    "links": [{
+      "id": "string",
+      "kind": "Puzzle|Treasure",
+      "targetIds": ["string"],
+      "rewards": {"points": "number", "powerUps": ["string"]},
+      "tags": {"module": "string", "difficulty": "string"}
+    }]
+  },
+  "assets.json": {
+    "assets": [{"id": "string", "kind": "Image|Mask|Audio", "path": "string", "tags": ["string"], "metadata": {"version": "number", "last_updated": "ISODate"}}]
+  },
+  "achievements.json": {
+    "achievements": [{"id": "string", "title": "string", "description": "string", "points": "number", "tags": ["string"], "metadata": {"version": "number", "last_updated": "ISODate"}}]
+  },
+  "sync_meta.json": {
+    "course": {},
+    "modules": [],
+    "assessments": [],
+    "assets": [],
+    "achievements": [],
+    "metadata": {"version": "number", "last_updated": "ISODate"}
+  }
+}

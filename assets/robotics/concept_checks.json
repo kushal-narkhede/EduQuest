@@ -1,0 +1,38 @@
+{
+  "schema": {
+    "id": "string",
+    "module": "string",
+    "lesson": "string",
+    "difficulty": "Beginner|Intermediate|Advanced",
+    "prompt": "string",
+    "expected": "string",
+    "rubric": {
+      "conceptPresence": "1 if key concept named and explained",
+      "clarity": "1 if clear and concise (1–2 sentences)",
+      "keyTerms": "1 if appropriate technical term used correctly"
+    },
+    "memoryMaster": {"eligible": true}
+  },
+  "items": [
+    {
+      "id": "CC-M1-L1-001",
+      "module": "Foundations",
+      "lesson": "Robot Types & Subsystems",
+      "difficulty": "Beginner",
+      "prompt": "Define an actuator and give one example.",
+      "expected": "An actuator converts energy into motion; example: DC motor.",
+      "rubric": {"conceptPresence": 1, "clarity": 1, "keyTerms": 1},
+      "memoryMaster": {"eligible": true}
+    },
+    {
+      "id": "CC-M4-L1-002",
+      "module": "Sensors",
+      "lesson": "IMU & Encoders",
+      "difficulty": "Intermediate",
+      "prompt": "What does an encoder measure on a robot?",
+      "expected": "Rotational position or speed of a shaft/wheel.",
+      "rubric": {"conceptPresence": 1, "clarity": 1, "keyTerms": 1},
+      "memoryMaster": {"eligible": true}
+    }
+  ]
+}

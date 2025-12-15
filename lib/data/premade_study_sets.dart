@@ -158,6 +158,8 @@ class PremadeStudySetsRepository {
       ],
     ),
 
+    // Robotics premade set removed per request
+
     // Financial Literacy
     PremadeStudySet(
       name: 'Financial Literacy',

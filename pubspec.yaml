@@ -57,6 +57,27 @@ flutter:
     - assets/apfrq/
     - assets/SATPrompts/
     - assets/prompts/
+    - assets/robotics/
+    - assets/robotics/curriculum.json
+    - assets/robotics/course.json
+    - assets/robotics/study_sets.csv
+    - assets/robotics/mcq_bank.json
+    - assets/robotics/concept_checks.json
+    - assets/robotics/frq_bank.json
+    - assets/robotics/coding_frq.json
+    - assets/robotics/problem_sets.json
+    - assets/robotics/treasure_hunt.json
+    - assets/robotics/study_sets.json
+    - assets/robotics/memory_master_cards.json
+    - assets/robotics/chapters.json
+    - assets/robotics/readings.json
+    - assets/robotics/labs.json
+    - assets/robotics/coding_exercises.json
+    - assets/robotics/competitions_prep.json
+    - assets/robotics/schemas/csv_schemas.md
+    - assets/robotics/schemas/json_schemas.json
+    - assets/robotics/schemas/tag_vocabularies.json
+    - assets/robotics/schemas/validation_rules.md
     - assets/images/planet.png
     - assets/images/astronaut.png
     - assets/images/google_icon.png

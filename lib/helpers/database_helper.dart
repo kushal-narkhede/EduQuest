@@ -434,10 +434,28 @@ class DatabaseHelper {
       final importedSetsJson = prefs.getString('imported_sets_$username') ?? '[]';
       final importedSetNames = List<String>.from(jsonDecode(importedSetsJson) ?? []);
       
-      if (setName != null && !importedSetNames.contains(setName)) {
-        importedSetNames.add(setName);
-        await prefs.setString('imported_sets_$username', jsonEncode(importedSetNames));
-        print('DEBUG: Successfully imported premade set: $setName');
+      String? nameToImport = setName;
+      if (nameToImport == null) {
+        // Try to resolve name from premade sets by ID
+        final premadeSets = await getPremadeStudySets();
+        final match = premadeSets.firstWhere(
+          (s) => s['id'] == studySetId || s['studySetId'] == studySetId,
+          orElse: () => <String, dynamic>{},
+        );
+        if (match.isNotEmpty && match['name'] is String) {
+          nameToImport = match['name'] as String;
+        }
+      }
+
+      if (nameToImport != null) {
+        final setNameFinal = nameToImport;
+        if (!importedSetNames.contains(setNameFinal)) {
+          importedSetNames.add(setNameFinal);
+          await prefs.setString('imported_sets_$username', jsonEncode(importedSetNames));
+          print('DEBUG: Successfully imported premade set: $setNameFinal');
+        } else {
+          print('DEBUG: Premade set already imported: $setNameFinal');
+        }
       }
     } catch (e) {
       print('DEBUG: Error importing premade set: $e');
@@ -450,8 +468,30 @@ class DatabaseHelper {
   }
 
   Future<List<Map<String, dynamic>>> getPremadeStudySets() async {
-    print('DEBUG: getPremadeStudySets stub - returning empty list');
-    return [];
+    try {
+      final premadeSets = PremadeStudySetsRepository.getPremadeSets();
+      int idCounter = 1;
+      return premadeSets.map((set) {
+        final id = idCounter++;
+        return {
+          'id': id,
+          'studySetId': id,
+          'name': set.name,
+          'description': set.description,
+          'subject': set.subject,
+          'questionCount': set.questions.length,
+          'isPremade': true,
+          'questions': set.questions.map((q) => {
+                'question': q.questionText,
+                'options': q.options,
+                'correctAnswer': q.correctAnswer,
+              }).toList(),
+        };
+      }).toList();
+    } catch (e) {
+      print('DEBUG: Error building premade sets: $e');
+      return [];
+    }
   }
 
   // ========== USER MANAGEMENT ==========

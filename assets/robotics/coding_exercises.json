@@ -1,0 +1,37 @@
+{
+  "schema": {
+    "id": "string",
+    "module": "string",
+    "title": "string",
+    "prompt": "string",
+    "inputs": "object",
+    "outputs": "object",
+    "constraints": ["string"],
+    "autoCheck": {"type": "io|range|predicate"},
+    "modes": {"lightning": true, "survival": true}
+  },
+  "exercises": [
+    {
+      "id": "EX-M6-Loop",
+      "module": "Programming",
+      "title": "Event Loop Basics",
+      "prompt": "Write a loop that processes a queue of sensor events and prints actions.",
+      "inputs": {"events": ["touch", "line", "obstacle"]},
+      "outputs": {"actions": ["stop", "turn", "follow"]},
+      "constraints": ["Use while-loop", "Map events to actions via dict"],
+      "autoCheck": {"type": "io"},
+      "modes": {"lightning": true, "survival": true}
+    },
+    {
+      "id": "EX-M7-DiffDrive",
+      "module": "Kinematics",
+      "title": "Compute Differential Drive Velocity",
+      "prompt": "Given wheel speeds and geometry, compute v and ω.",
+      "inputs": {"r": 0.05, "L": 0.2, "omega_r": 10.0, "omega_l": 9.0},
+      "outputs": {"v": 0.5, "omega": 0.25},
+      "constraints": ["Use formulas v = (r/2)(ω_r + ω_l), ω = (r/L)(ω_r - ω_l)"],
+      "autoCheck": {"type": "range"},
+      "modes": {"lightning": true, "survival": true}
+    }
+  ]
+}

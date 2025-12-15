@@ -3788,13 +3788,13 @@ class _MCQManagerState extends State<MCQManager> {
                 // AP Classes Grid
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: GridView.builder(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
                         childAspectRatio: 0.85,
                       ),
                       itemCount: filteredAPClasses.length,
@@ -3885,7 +3885,7 @@ class _MCQManagerState extends State<MCQManager> {
                   : null,
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -3931,120 +3931,142 @@ class _MCQManagerState extends State<MCQManager> {
                   ),
                   const SizedBox(height: 2),
                   // Display content bubbles or questions
-                  apClass['name'] == 'AP Computer Science A'
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: badgeBackgroundColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            '20 MCQs + 4 FRQs',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                  Flexible(
+                    child: apClass['name'] == 'AP Computer Science A'
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: badgeBackgroundColor,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ),
-                        )
-                      : apClass['name'] == 'SAT'
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: badgeBackgroundColor,
-                                borderRadius: BorderRadius.circular(12),
+                            child: const Text(
+                              '20 MCQs + 4 FRQs',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
-                              child: const Text(
-                                'Choose Subject',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )
+                        : apClass['name'] == 'SAT'
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: badgeBackgroundColor,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              ),
-                            )
+                                child: const Text(
+                                  'Choose Subject',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              )
                           : apClass['contents'] != null &&
                                   (apClass['contents'] as List).isNotEmpty
                               ? Transform.translate(
                                   offset: const Offset(0, -16),
                                   child: Center(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // First row: TextBook and Portfolio
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 4),
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 140),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // First row: TextBook and Portfolio
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Flexible(
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: badgeBackgroundColor,
+                                                    borderRadius:
+                                                        BorderRadius.circular(10),
+                                                  ),
+                                                  child: Text(
+                                                    'TextBook',
+                                                    style: TextStyle(
+                                                      fontSize: 8,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: primaryTextColor,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 3),
+                                                  decoration: BoxDecoration(
+                                                    color: badgeBackgroundColor,
+                                                    borderRadius:
+                                                        BorderRadius.circular(10),
+                                                  ),
+                                                  child: Text(
+                                                    'Portfolio',
+                                                    style: TextStyle(
+                                                      fontSize: 8,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: primaryTextColor,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Second row: Question Bank
+                                          ConstrainedBox(
+                                            constraints: const BoxConstraints(maxWidth: 130),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8, vertical: 3),
                                               decoration: BoxDecoration(
                                                 color: badgeBackgroundColor,
                                                 borderRadius:
-                                                    BorderRadius.circular(12),
+                                                    BorderRadius.circular(10),
                                               ),
                                               child: Text(
-                                                'TextBook',
+                                                'Question Bank',
                                                 style: TextStyle(
-                                                  fontSize: 9,
+                                                  fontSize: 8,
                                                   fontWeight: FontWeight.bold,
                                                   color: primaryTextColor,
                                                 ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: badgeBackgroundColor,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Text(
-                                                'Portfolio',
-                                                style: TextStyle(
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: primaryTextColor,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 6),
-                                        // Second row: Question Bank
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: badgeBackgroundColor,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            'Question Bank',
-                                            style: TextStyle(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
-                                              color: primaryTextColor,
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 )
                               : Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 4),
+                                      horizontal: 10, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: badgeBackgroundColor,
                                     borderRadius: BorderRadius.circular(12),
@@ -4052,12 +4074,15 @@ class _MCQManagerState extends State<MCQManager> {
                                   child: Text(
                                     '${apClass['questions']?.length ?? 0} Questions',
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       color: primaryTextColor,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
+                  ),
                 ],
               ),
             ),
@@ -4095,6 +4120,11 @@ class _MCQManagerState extends State<MCQManager> {
           ),
         ),
       );
+    }
+
+    // Special handling for Robotics courses - load from database
+    if (selectedSubject!.startsWith('Robotics')) {
+      return _buildRoboticsQuizScreen();
     }
 
     final selectedClass = apClasses.firstWhere(
@@ -4512,6 +4542,431 @@ class _MCQManagerState extends State<MCQManager> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Build Robotics Quiz Screen with specialized features
+  Widget _buildRoboticsQuizScreen() {
+    // Get the selected Robotics course from apClasses
+    final selectedClass = apClasses.firstWhere(
+      (cls) => (cls['name'] as String).startsWith('Robotics'),
+      orElse: () => <String, dynamic>{},
+    );
+
+    if (selectedClass.isEmpty || selectedClass['questions'] == null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 64),
+              const SizedBox(height: 16),
+              const Text(
+                'No Robotics questions available',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    selectedSubject = null;
+                  });
+                },
+                child: const Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final questions = (selectedClass['questions'] as List)
+        .take(20)
+        .toList()
+        .cast<Map<String, dynamic>>();
+
+    // Prevent RangeError by checking bounds
+    if (currentQuestionIndex >= questions.length) {
+      return Center(
+        child: Text(
+          'You have completed all questions!',
+          style: TextStyle(fontSize: 24, color: Colors.white),
+        ),
+      );
+    }
+
+    if (showResults) {
+      return _buildRoboticsResultsScreen(questions);
+    }
+
+    final currentQuestion = questions[currentQuestionIndex];
+    final isSubmitted = submittedAnswers.containsKey(currentQuestionIndex);
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  const Color(0xFF2E7D32).withOpacity(0.1),
+                  const Color(0xFF1565C0).withOpacity(0.1)
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with progress
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedSubject = null;
+                            currentQuestionIndex = 0;
+                            submittedAnswers.clear();
+                            showResults = false;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.arrow_back,
+                              color: Colors.white),
+                        ),
+                      ),
+                      Text(
+                        'Q${currentQuestionIndex + 1}/${questions.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Robotics 🚀',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Question Type Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'MCQ',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Question text
+                  Text(
+                    currentQuestion['question'] ?? 'No question text',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Options
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount:
+                          (currentQuestion['options'] as List?)?.length ?? 0,
+                      itemBuilder: (context, index) {
+                        final options = currentQuestion['options'] as List;
+                        final option = options[index];
+                        final isSelected =
+                            submittedAnswers[currentQuestionIndex] == index;
+                        final isCorrect = index == (currentQuestion['correct'] ?? 0);
+                        final showCorrect = isSubmitted && isCorrect;
+                        final showIncorrect =
+                            isSubmitted && isSelected && !isCorrect;
+
+                        return GestureDetector(
+                          onTap: isSubmitted
+                              ? null
+                              : () {
+                                  setState(() {
+                                    submittedAnswers[currentQuestionIndex] =
+                                        index;
+                                  });
+                                },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: showCorrect
+                                  ? Colors.green.withOpacity(0.3)
+                                  : showIncorrect
+                                      ? Colors.red.withOpacity(0.3)
+                                      : isSelected
+                                          ? Colors.blue.withOpacity(0.3)
+                                          : Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: showCorrect
+                                    ? Colors.green
+                                    : showIncorrect
+                                        ? Colors.red
+                                        : isSelected
+                                            ? Colors.blue
+                                            : Colors.white30,
+                                width: 2,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: showCorrect
+                                          ? Colors.green
+                                          : showIncorrect
+                                              ? Colors.red
+                                              : isSelected
+                                                  ? Colors.blue
+                                                  : Colors.white30,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: isSelected
+                                      ? Center(
+                                          child: Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: showCorrect
+                                                  ? Colors.green
+                                                  : showIncorrect
+                                                      ? Colors.red
+                                                      : Colors.blue,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    option.toString(),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (showCorrect)
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.green)
+                                else if (showIncorrect)
+                                  const Icon(Icons.cancel,
+                                      color: Colors.red),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Submit/Next button
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        if (!isSubmitted) {
+                          if (submittedAnswers
+                              .containsKey(currentQuestionIndex)) {
+                            setState(() {});
+                          }
+                        } else {
+                          if (currentQuestionIndex < questions.length - 1) {
+                            setState(() {
+                              currentQuestionIndex++;
+                            });
+                          } else {
+                            setState(() {
+                              showResults = true;
+                            });
+                          }
+                        }
+                      },
+                      child: Text(
+                        !isSubmitted
+                            ? 'Submit'
+                            : (currentQuestionIndex < questions.length - 1
+                                ? 'Next Question'
+                                : 'View Results'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build Robotics Results Screen
+  Widget _buildRoboticsResultsScreen(List<Map<String, dynamic>> questions) {
+    int correctCount = 0;
+    for (var entry in submittedAnswers.entries) {
+      final questionIndex = entry.key;
+      final selectedOptionIndex = entry.value;
+      final question = questions[questionIndex];
+      final correctAnswer = question['correctAnswerIndex'];
+      if (selectedOptionIndex == correctAnswer) {
+        correctCount++;
+      }
+    }
+
+    final percentage =
+        ((correctCount / submittedAnswers.length) * 100).toStringAsFixed(1);
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF2E7D32).withOpacity(0.1),
+              const Color(0xFF1565C0).withOpacity(0.1)
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.celebration, color: Colors.green, size: 80),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Robotics Challenge Complete! 🚀',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '$correctCount / ${submittedAnswers.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Score: $percentage%',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          selectedSubject = null;
+                          currentQuestionIndex = 0;
+                          submittedAnswers.clear();
+                          showResults = false;
+                        });
+                      },
+                      child: const Text('Return to Browse Sets',
+                          style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -5737,6 +6192,101 @@ class _MCQManagerState extends State<MCQManager> {
     }
   }
 
+  // Import Robotics course with specialized features
+  Future<void> _importRoboticsCourse(String subjectName) async {
+    try {
+      // Check if already imported
+      final isAlreadyImported = await _isSetAlreadyImported(subjectName);
+      if (isAlreadyImported) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.white),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text('Set "$subjectName" is already imported!'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Show loading state
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text('Importing $subjectName...'),
+              ],
+            ),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // Import the Robotics set
+      await _dbHelper.importPremadeSet(widget.username, 0, setName: subjectName);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text('$subjectName successfully imported! 🚀'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        
+        // Notify parent that a set was imported
+        widget.onSetImported?.call();
+      }
+    } catch (e) {
+      print('Error importing Robotics course: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   // Add import functionality for MCQ sets
   Future<void> _importMCQSet(String subjectName) async {
     try {
@@ -5780,6 +6330,14 @@ class _MCQManagerState extends State<MCQManager> {
       if (subjectName == 'SAT') {
         print('DEBUG: YES - showing SAT choice dialog');
         await _showSATSubjectChoice();
+        return;
+      }
+
+      // Special handling for Robotics course
+      print('DEBUG: Checking if subject is Robotics: "$subjectName"');
+      if (subjectName.startsWith('Robotics')) {
+        print('DEBUG: YES - loading Robotics course with specialized features');
+        await _importRoboticsCourse(subjectName);
         return;
       }
 

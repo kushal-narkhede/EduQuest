@@ -1,0 +1,81 @@
+{
+  "schema": {
+    "id": "string",
+    "module": "string",
+    "lesson": "string",
+    "type": "design|control|kinematics|coding",
+    "prompt": "string",
+    "rubric": {
+      "criteria": ["correctness", "reasoning", "clarity", "unitsNotation", "codeQuality", "edgeCases"],
+      "scale": "0-4|0-6",
+      "levels": {
+        "0": "No attempt or irrelevant",
+        "1": "Major errors; limited reasoning",
+        "2": "Partial correctness; some reasoning",
+        "3": "Mostly correct; good reasoning and clarity",
+        "4": "Correct, well-justified, clear; proper units/notation"
+      }
+    },
+    "aiHints": {
+      "keywords": ["PID", "tuning", "overshoot", "steady-state", "derivative"],
+      "canonicalSteps": ["Define control law", "Describe effect of gains", "Provide tuning method"],
+      "commonErrors": ["Confusing P and D roles", "Ignoring integral windup"]
+    },
+    "powerUps": {"skipAllowed": false, "doublePointsAllowed": true, "timeFreezeAllowed": false},
+    "modes": {"survivalEligible": true}
+  },
+  "items": [
+    {
+      "id": "FRQ-M5-L2-001",
+      "module": "Control",
+      "lesson": "PID Tuning",
+      "type": "control",
+      "prompt": "Explain a PID tuning strategy for a mobile robot speed controller. Justify parameter choices and discuss stability.",
+      "rubric": {
+        "criteria": ["correctness", "reasoning", "clarity", "unitsNotation", "edgeCases"],
+        "scale": "0-4",
+        "levels": {
+          "0": "No attempt or irrelevant",
+          "1": "Lists P/I/D without linking to behavior",
+          "2": "Describes gains with limited justification",
+          "3": "Solid strategy (e.g., Ziegler–Nichols or manual), stability discussed",
+          "4": "Clear, correct, parameter rationale; mentions anti-windup and noise handling"
+        }
+      },
+      "aiHints": {
+        "keywords": ["setpoint", "overshoot", "steady-state error", "anti-windup", "noise"],
+        "canonicalSteps": ["Define control law", "State tuning approach", "Discuss stability"],
+        "commonErrors": ["Treating derivative as integral", "No anti-windup"]
+      },
+      "powerUps": {"skipAllowed": false, "doublePointsAllowed": true, "timeFreezeAllowed": false},
+      "modes": {"survivalEligible": true}
+    },
+    {
+      "id": "FRQ-M7-L2-002",
+      "module": "Kinematics",
+      "lesson": "2-DOF Arm Kinematics",
+      "type": "kinematics",
+      "prompt": "Compute the end-effector pose for a planar 2-DOF arm given joint angles and link lengths; show derivation and note assumptions.",
+      "rubric": {
+        "criteria": ["correctness", "reasoning", "clarity", "unitsNotation"],
+        "scale": "0-6",
+        "levels": {
+          "0": "No attempt",
+          "1": "Incorrect derivation",
+          "2": "Partially correct equations",
+          "3": "Correct forward kinematics, limited explanation",
+          "4": "Correct derivation with clear notation",
+          "5": "Correct with assumptions and edge cases",
+          "6": "Exemplary clarity, correctness, units/notation"
+        }
+      },
+      "aiHints": {
+        "keywords": ["forward kinematics", "link lengths", "joint angles", "planar"],
+        "canonicalSteps": ["Define frames", "Write position equations", "Substitute angles"],
+        "commonErrors": ["Sign errors", "Frame confusion"]
+      },
+      "powerUps": {"skipAllowed": false, "doublePointsAllowed": true, "timeFreezeAllowed": false},
+      "modes": {"survivalEligible": true}
+    }
+  ]
+}

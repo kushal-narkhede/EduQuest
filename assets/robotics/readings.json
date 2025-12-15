@@ -1,0 +1,28 @@
+{
+  "schema": {
+    "id": "string",
+    "module": "string",
+    "lesson": "string",
+    "title": "string",
+    "url": "string",
+    "summary": "string"
+  },
+  "readings": [
+    {
+      "id": "RD-M1-Frames",
+      "module": "Foundations",
+      "lesson": "Coordinate Frames",
+      "title": "Coordinate Frames Primer (OER)",
+      "url": "https://ocw.mit.edu/",
+      "summary": "Intro to coordinate frames and transforms with simple examples; explains pose, rotation, and translation in clear terms. Tagged for Foundations/Frames."
+    },
+    {
+      "id": "RD-M3-PWM",
+      "module": "Electronics",
+      "lesson": "Power & Drivers",
+      "title": "PWM Basics (Open tutorial)",
+      "url": "https://www.allaboutcircuits.com/",
+      "summary": "Explains pulse width modulation and motor speed control, including duty cycle effects and driver considerations. Tagged for Electronics/Power & Drivers."
+    }
+  ]
+}

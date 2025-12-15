@@ -1,0 +1,15 @@
+{
+  "schema": {
+    "id": "string",
+    "type": "strategy|checklist|scenario|reflection",
+    "title": "string",
+    "content": "string",
+    "tags": {"module": "string"}
+  },
+  "prep": [
+    {"id": "CP-Strategy-001", "type": "strategy", "title": "Competition Strategy Basics", "content": "Define win conditions and constraints; prioritize reliability over novelty; plan testing schedules and roles.", "tags": {"module": "Competition Prep"}},
+    {"id": "CP-Checklist-001", "type": "checklist", "title": "Design Trade-offs Checklist", "content": "Torque vs speed; weight vs strength; simplicity vs features; accessibility for maintenance.", "tags": {"module": "Competition Prep"}},
+    {"id": "CP-Scenario-001", "type": "scenario", "title": "Practice Match: Waypoint Course", "content": "Constraints: limited battery, mixed terrain; Scoring: accuracy and time; Failure modes: wheel slip, sensor dropout.", "tags": {"module": "Competition Prep"}},
+    {"id": "CP-Reflection-001", "type": "reflection", "title": "Post-mortem Template", "content": "Summarize objectives, outcomes, failures, fixes, and next iteration plan.", "tags": {"module": "Competition Prep"}}
+  ]
+}

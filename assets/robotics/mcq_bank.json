@@ -1,0 +1,81 @@
+{
+  "schema": {
+    "id": "string",
+    "module": "string",
+    "lesson": "string",
+    "difficulty": "Beginner|Intermediate|Advanced",
+    "cognitive": "recall|concept|application",
+    "stem": "string",
+    "options": ["A", "B", "C", "D"],
+    "correct": "A|B|C|D",
+    "rationale": {
+      "correct": "string",
+      "distractors": {"A": "string", "B": "string", "C": "string", "D": "string"}
+    },
+    "modes": {"lightning": true, "survival": true},
+    "powerUps": {"fiftyFiftyEligible": true}
+  },
+  "items": [
+    {
+      "id": "MCQ-M2-L2-001",
+      "module": "Mechanics",
+      "lesson": "Chassis Design",
+      "difficulty": "Beginner",
+      "cognitive": "concept",
+      "stem": "Which setup increases torque at the output?",
+      "options": ["High gear ratio", "Low gear ratio", "Direct drive", "Belt drive"],
+      "correct": "A",
+      "rationale": {
+        "correct": "Higher gear ratios trade speed for torque at the output.",
+        "distractors": {
+          "A": "Correct: torque increases as ratio increases (neglecting losses).",
+          "B": "Lower ratio increases speed, not torque.",
+          "C": "Direct drive provides 1:1 ratio; no torque multiplication.",
+          "D": "Belts transmit power but ratio/efficiency vary; not inherently increasing torque."
+        }
+      },
+      "modes": {"lightning": true, "survival": true},
+      "powerUps": {"fiftyFiftyEligible": true}
+    },
+    {
+      "id": "MCQ-M3-L1-002",
+      "module": "Electronics",
+      "lesson": "Power & Drivers",
+      "difficulty": "Beginner",
+      "cognitive": "recall",
+      "stem": "PWM primarily controls DC motor speed by varying what?",
+      "options": ["Voltage level", "Duty cycle", "Frequency only", "Phase shift"],
+      "correct": "B",
+      "rationale": {
+        "correct": "Duty cycle determines average voltage seen by the motor.",
+        "distractors": {
+          "A": "Instantaneous voltage toggles; average is set by duty cycle.",
+          "C": "Frequency can matter but duty cycle is primary for speed.",
+          "D": "Phase shift is not the standard mechanism for DC motor speed control."
+        }
+      },
+      "modes": {"lightning": true, "survival": true},
+      "powerUps": {"fiftyFiftyEligible": true}
+    },
+    {
+      "id": "MCQ-M5-L2-003",
+      "module": "Control",
+      "lesson": "PID Tuning",
+      "difficulty": "Intermediate",
+      "cognitive": "application",
+      "stem": "Increasing integral gain (I) typically reduces steady-state error but may...",
+      "options": ["Reduce overshoot", "Improve noise immunity", "Increase oscillations", "Eliminate derivative action"],
+      "correct": "C",
+      "rationale": {
+        "correct": "Integral accumulates error; excessive I can cause oscillations and instability.",
+        "distractors": {
+          "A": "Overshoot often increases with high I.",
+          "B": "Noise immunity is more influenced by D; integral can worsen noise sensitivity.",
+          "D": "Derivative action is independent of integral gain."
+        }
+      },
+      "modes": {"lightning": true, "survival": true},
+      "powerUps": {"fiftyFiftyEligible": false}
+    }
+  ]
+}

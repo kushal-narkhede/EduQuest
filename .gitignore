@@ -14,9 +14,12 @@ migrate_working_dir/
 
 # Environment variables and secrets
 .env
+**/.env
 .env.local
+**/.env.local
 .env.*.local
 *.env
+server/.env
 
 # IntelliJ related
 *.iml

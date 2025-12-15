@@ -1,0 +1,14 @@
+{
+  "schema": {
+    "id": "string",
+    "front": "string",
+    "back": "string",
+    "image": "string|null",
+    "tags": {"module": "string", "difficulty": "Beginner|Intermediate|Advanced"}
+  },
+  "cards": [
+    {"id": "MM-M1-001", "front": "Define actuator", "back": "Converts energy to motion (e.g., DC motor)", "image": null, "tags": {"module": "Foundations", "difficulty": "Beginner"}},
+    {"id": "MM-M4-002", "front": "IMU purpose", "back": "Measures acceleration and rotation; used for orientation/heading", "image": "assets/images/sensor_imu.png", "tags": {"module": "Sensors", "difficulty": "Beginner"}},
+    {"id": "MM-M3-003", "front": "PWM definition", "back": "Pulse width modulation to control average voltage/power", "image": "assets/images/electronics_pwm.png", "tags": {"module": "Electronics", "difficulty": "Beginner"}}
+  ]
+}

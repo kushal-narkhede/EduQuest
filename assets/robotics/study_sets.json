@@ -1,0 +1,32 @@
+{
+  "schema": {
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "tags": {"module": "string", "difficulty": "Beginner|Intermediate|Advanced", "estimatedTime": "string", "modes": ["Lightning", "Survival", "Memory Master", "Puzzle Quest", "Treasure Hunt", "FRQ"]},
+    "items": [{"type": "term|formula|qa", "front": "string", "back": "string"}]
+  },
+  "sets": [
+    {
+      "id": "SS-M1-L1",
+      "title": "Foundations: Robot Types & Subsystems",
+      "description": "Key vocabulary, roles of actuators/sensors, coordinate frames.",
+      "tags": {"module": "Foundations", "difficulty": "Beginner", "estimatedTime": "25m", "modes": ["Lightning", "Memory Master"]},
+      "items": [
+        {"type": "term", "front": "Actuator", "back": "Device that converts energy to motion (e.g., DC motor)."},
+        {"type": "term", "front": "Sensor", "back": "Device that measures physical quantities (e.g., IMU)."},
+        {"type": "qa", "front": "Why use coordinate frames?", "back": "To express pose and transform between reference systems."}
+      ]
+    },
+    {
+      "id": "SS-M2-L1",
+      "title": "Mechanics: Torque & Speed Trade-offs",
+      "description": "Gear ratios, torque-speed curves, backlash considerations.",
+      "tags": {"module": "Mechanics", "difficulty": "Beginner", "estimatedTime": "30m", "modes": ["Lightning", "Survival", "Memory Master"]},
+      "items": [
+        {"type": "formula", "front": "Torque_out = Torque_in × Ratio", "back": "Ideal relationship ignoring losses; speed reduces by same ratio."},
+        {"type": "qa", "front": "What increases output torque?", "back": "Higher gear ratio trades speed for torque."}
+      ]
+    }
+  ]
+}

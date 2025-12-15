@@ -1,0 +1,46 @@
+{
+  "schema": {
+    "id": "string",
+    "module": "string",
+    "title": "string",
+    "objective": "string",
+    "materials": ["string"],
+    "safety": ["string"],
+    "procedure": ["string"],
+    "expected": ["string"],
+    "troubleshooting": ["string"],
+    "variants": ["string"],
+    "dataSheet": ["string"],
+    "rubric": {"criteria": ["string"], "scale": "0-4|0-6"}
+  },
+  "labs": [
+    {
+      "id": "LAB-M3-HBridge",
+      "module": "Electronics",
+      "title": "Drive a DC Motor with H-Bridge",
+      "objective": "Wire and control a DC motor using an H-bridge and PWM.",
+      "materials": ["Microcontroller", "H-Bridge", "DC motor", "Battery", "Wires"],
+      "safety": ["Check polarity", "Avoid short circuits", "Secure spinning parts"],
+      "procedure": ["Wire H-bridge to motor and microcontroller", "Write PWM code", "Vary duty cycle to observe speed"],
+      "expected": ["Speed increases with duty cycle", "Direction flips with control pins"],
+      "troubleshooting": ["Motor not spinning: check wiring and power", "Erratic speed: verify PWM settings"],
+      "variants": ["Simulation with virtual motor", "Coding-only mock outputs"],
+      "dataSheet": ["Duty cycle vs speed log", "Current draw measurements"],
+      "rubric": {"criteria": ["Correct wiring", "PWM operation", "Safety"], "scale": "0-4"}
+    },
+    {
+      "id": "LAB-M5-PID",
+      "module": "Control",
+      "title": "PID Speed Control",
+      "objective": "Implement closed-loop control for a mobile robot wheel speed.",
+      "materials": ["Microcontroller", "Wheel encoder", "DC motor", "Power"],
+      "safety": ["Keep robot secured", "Avoid high-speed tests indoors"],
+      "procedure": ["Read encoder speed", "Compute error vs setpoint", "Apply PID control", "Record response"],
+      "expected": ["Reduced steady-state error", "Tunable overshoot and settling"],
+      "troubleshooting": ["Oscillations: reduce I or adjust D", "Noise: filter encoder readings"],
+      "variants": ["Simulation-only with synthetic encoder data"],
+      "dataSheet": ["Setpoint", "Measured speed", "Control output"],
+      "rubric": {"criteria": ["Closed-loop implementation", "Tuning justification", "Data collection"], "scale": "0-6"}
+    }
+  ]
+}

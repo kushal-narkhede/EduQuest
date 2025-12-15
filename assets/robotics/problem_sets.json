@@ -1,0 +1,31 @@
+{
+  "schema": {
+    "id": "string",
+    "module": "string",
+    "lesson": "string",
+    "difficulty": "Beginner|Intermediate|Advanced",
+    "prompt": "string",
+    "solution": "string",
+    "tags": {"application": true, "puzzleQuestEligible": true}
+  },
+  "items": [
+    {
+      "id": "PS-M2-L1-001",
+      "module": "Mechanics",
+      "lesson": "Torque & Speed Trade-offs",
+      "difficulty": "Intermediate",
+      "prompt": "Given a motor with stall torque 2 N·m and no-load speed 5000 rpm, choose a gear ratio to achieve ~10 N·m output torque and estimate resulting speed.",
+      "solution": "Torque multiplies by ratio; 10/2 = 5:1 ratio. Speed reduces to ~1000 rpm (ignoring losses).",
+      "tags": {"application": true, "puzzleQuestEligible": true}
+    },
+    {
+      "id": "PS-M7-L1-002",
+      "module": "Kinematics",
+      "lesson": "Differential Drive Kinematics",
+      "difficulty": "Advanced",
+      "prompt": "Derive v = (r/2)(ω_r + ω_l) and ω = (r/L)(ω_r - ω_l) for differential drive.",
+      "solution": "From wheel rolling constraints and geometry, sum and difference of wheel angular velocities yield linear and angular velocities.",
+      "tags": {"application": true, "puzzleQuestEligible": true}
+    }
+  ]
+}

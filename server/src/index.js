@@ -10,6 +10,7 @@ import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import User from './models/User.js'; // Assuming this User model is correctly defined
 import { v4 as uuidv4 } from 'uuid'; // Import a unique ID generator
+import roboticsRouter from './routes/robotics.ts';
 
 // --- Initialization and Configuration ---
 
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
+app.use('/robotics', roboticsRouter);
 
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
