@@ -10,7 +10,7 @@ import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import User from './models/User.js'; // Assuming this User model is correctly defined
 import { v4 as uuidv4 } from 'uuid'; // Import a unique ID generator
-import roboticsRouter from './routes/robotics.ts';
+import roboticsRouter from './routes/robotics.js';
 
 // --- Initialization and Configuration ---
 
