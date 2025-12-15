@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { CourseModel, ModuleModel, AssessmentModel } from '../models/roboticsModels';
+import { CourseModel, ModuleModel, AssessmentModel } from '../models/roboticsModels.js';
 
 const router = Router();
 
@@ -18,12 +18,12 @@ router.get('/courses/robotics', async (req, res) => {
 router.get('/modules/:courseId', async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { difficulty, tags: tagsParam, modes: modesParam, page = '1', pageSize = '20' } = req.query as any;
+    const { difficulty, tags: tagsParam, modes: modesParam, page = '1', pageSize = '20' } = req.query;
     const pageNum = Math.max(1, parseInt(page));
     const pageSizeNum = Math.min(100, Math.max(1, parseInt(pageSize)));
     const skip = (pageNum - 1) * pageSizeNum;
 
-    const filter: any = { courseId };
+    const filter = { courseId };
     if (difficulty) filter.difficulty = difficulty;
     if (tagsParam) {
       const tagArray = Array.isArray(tagsParam) ? tagsParam : tagsParam.split(',');
@@ -46,12 +46,12 @@ router.get('/modules/:courseId', async (req, res) => {
 router.get('/assessments/:moduleId', async (req, res) => {
   try {
     const { moduleId } = req.params;
-    const { type, difficulty, tags: tagsParam, modes: modesParam, page = '1', pageSize = '50' } = req.query as any;
+    const { type, difficulty, tags: tagsParam, modes: modesParam, page = '1', pageSize = '50' } = req.query;
     const pageNum = Math.max(1, parseInt(page));
     const pageSizeNum = Math.min(100, Math.max(1, parseInt(pageSize)));
     const skip = (pageNum - 1) * pageSizeNum;
 
-    const filter: any = { moduleId };
+    const filter = { moduleId };
     if (type) filter.type = type;
     if (difficulty) filter.difficulty = difficulty;
     if (tagsParam) {
