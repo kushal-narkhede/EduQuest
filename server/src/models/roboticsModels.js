@@ -1,28 +1,6 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
-export interface BaseMeta {
-  version: number;
-  last_updated: Date;
-}
-
-export interface Taggable {
-  tags: string[]; // domain/subtopic etc.
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  modes: string[]; // Lightning | Survival | Memory Master | Puzzle Quest | Treasure Hunt | FRQ
-}
-
-export interface CourseDoc extends Document, Taggable {
-  title: string;
-  shortDescription: string;
-  longDescription: string;
-  audience: string;
-  estimatedDuration: string;
-  prerequisites: string[];
-  outcomes: string[];
-  metadata: BaseMeta;
-}
-
-const CourseSchema = new Schema<CourseDoc>({
+const CourseSchema = new Schema({
   title: { type: String, required: true },
   shortDescription: String,
   longDescription: String,
@@ -39,17 +17,9 @@ const CourseSchema = new Schema<CourseDoc>({
   },
 }, { timestamps: true });
 
-export const CourseModel = mongoose.model<CourseDoc>('Course', CourseSchema);
+export const CourseModel = mongoose.model('Course', CourseSchema);
 
-export interface ModuleDoc extends Document, Taggable {
-  courseId: mongoose.Types.ObjectId;
-  title: string;
-  summary: string;
-  glossary: { term: string; definition: string }[];
-  metadata: BaseMeta;
-}
-
-const ModuleSchema = new Schema<ModuleDoc>({
+const ModuleSchema = new Schema({
   courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
   title: { type: String, required: true },
   summary: String,
@@ -63,21 +33,9 @@ const ModuleSchema = new Schema<ModuleDoc>({
   },
 }, { timestamps: true });
 
-export const ModuleModel = mongoose.model<ModuleDoc>('Module', ModuleSchema);
+export const ModuleModel = mongoose.model('Module', ModuleSchema);
 
-export interface AssessmentDoc extends Document, Taggable {
-  moduleId: mongoose.Types.ObjectId;
-  type: 'MCQ' | 'Concept' | 'FRQ' | 'CodingFRQ' | 'ProblemSet' | 'Treasure';
-  prompt: string;
-  options?: string[];
-  correctAnswer?: string;
-  rubric?: any;
-  rationale?: any;
-  powerUps?: Record<string, boolean>;
-  metadata: BaseMeta;
-}
-
-const AssessmentSchema = new Schema<AssessmentDoc>({
+const AssessmentSchema = new Schema({
   moduleId: { type: Schema.Types.ObjectId, ref: 'Module', required: true },
   type: { type: String, required: true },
   prompt: { type: String, required: true },
@@ -95,16 +53,9 @@ const AssessmentSchema = new Schema<AssessmentDoc>({
   },
 }, { timestamps: true });
 
-export const AssessmentModel = mongoose.model<AssessmentDoc>('Assessment', AssessmentSchema);
+export const AssessmentModel = mongoose.model('Assessment', AssessmentSchema);
 
-export interface StudySetDoc extends Document, Taggable {
-  title: string;
-  description: string;
-  items: { type: 'term' | 'formula' | 'qa'; front: string; back: string }[];
-  metadata: BaseMeta;
-}
-
-const StudySetSchema = new Schema<StudySetDoc>({
+const StudySetSchema = new Schema({
   title: { type: String, required: true },
   description: String,
   items: [{ type: { type: String }, front: String, back: String }],
@@ -117,17 +68,9 @@ const StudySetSchema = new Schema<StudySetDoc>({
   },
 }, { timestamps: true });
 
-export const StudySetModel = mongoose.model<StudySetDoc>('StudySet', StudySetSchema);
+export const StudySetModel = mongoose.model('StudySet', StudySetSchema);
 
-export interface GameAssetDoc extends Document {
-  kind: 'Puzzle' | 'TreasureMap' | 'Image' | 'Mask';
-  path?: string;
-  data?: any;
-  tags: string[];
-  metadata: BaseMeta;
-}
-
-const GameAssetSchema = new Schema<GameAssetDoc>({
+const GameAssetSchema = new Schema({
   kind: { type: String, required: true },
   path: String,
   data: Schema.Types.Mixed,
@@ -138,17 +81,9 @@ const GameAssetSchema = new Schema<GameAssetDoc>({
   },
 }, { timestamps: true });
 
-export const GameAssetModel = mongoose.model<GameAssetDoc>('GameAsset', GameAssetSchema);
+export const GameAssetModel = mongoose.model('GameAsset', GameAssetSchema);
 
-export interface AchievementDoc extends Document {
-  title: string;
-  description: string;
-  points: number;
-  tags: string[];
-  metadata: BaseMeta;
-}
-
-const AchievementSchema = new Schema<AchievementDoc>({
+const AchievementSchema = new Schema({
   title: { type: String, required: true },
   description: String,
   points: { type: Number, default: 0 },
@@ -159,4 +94,4 @@ const AchievementSchema = new Schema<AchievementDoc>({
   },
 }, { timestamps: true });
 
-export const AchievementModel = mongoose.model<AchievementDoc>('Achievement', AchievementSchema);
+export const AchievementModel = mongoose.model('Achievement', AchievementSchema);
