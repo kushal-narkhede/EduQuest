@@ -1,0 +1,4 @@
+﻿# Allow .env files in Cursor (they're still git-ignored)
+!**/.env
+!.env
+!server/.env

@@ -19,7 +19,7 @@ class Question {
   final List<String> options;
   final String correctAnswer;
 
-  Question({
+  const Question({
     required this.questionText,
     required this.options,
     required this.correctAnswer,
