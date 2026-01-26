@@ -241,6 +241,76 @@ class RemoteApiClient {
     await _dio.delete('$_base/users/$username/block/$blockUsername');
   }
 
+  // STUDY PROGRESS TRACKING
+  /// Save a question attempt to track progress
+  Future<void> saveQuestionAttempt(String username, String questionId, String course, String chapter, bool isCorrect, {int? timeSpent}) async {
+    await _dio.post('$_base/users/$username/study-progress/attempt', data: {
+      'questionId': questionId,
+      'course': course,
+      'chapter': chapter,
+      'isCorrect': isCorrect,
+      'timeSpent': timeSpent ?? 0,
+    });
+  }
+
+  /// Get progress for a specific chapter
+  Future<Map<String, dynamic>> getChapterProgress(String username, String course, String chapter) async {
+    final res = await _dio.get('$_base/users/$username/study-progress/$course/$chapter');
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Get all progress for a course
+  Future<Map<String, dynamic>> getCourseProgress(String username, String course) async {
+    final res = await _dio.get('$_base/users/$username/study-progress/$course');
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Get weak areas for a course
+  Future<List<String>> getWeakAreas(String username, String course) async {
+    final res = await _dio.get('$_base/users/$username/study-progress/$course/weak-areas');
+    return List<String>.from(res.data['weakAreas'] ?? []);
+  }
+
+  /// Get question history
+  Future<List<Map<String, dynamic>>> getQuestionHistory(String username, {String? course, String? chapter}) async {
+    final queryParams = <String, dynamic>{};
+    if (course != null) queryParams['course'] = course;
+    if (chapter != null) queryParams['chapter'] = chapter;
+    
+    final res = await _dio.get('$_base/users/$username/question-history', queryParameters: queryParams);
+    return List<Map<String, dynamic>>.from(res.data['history'] ?? []);
+  }
+
+  // BOOKMARKING
+  /// Bookmark a question
+  Future<void> bookmarkQuestion(String username, String questionId) async {
+    await _dio.post('$_base/users/$username/bookmarks', data: {
+      'questionId': questionId,
+    });
+  }
+
+  /// Remove bookmark
+  Future<void> removeBookmark(String username, String questionId) async {
+    await _dio.delete('$_base/users/$username/bookmarks/$questionId');
+  }
+
+  /// Get all bookmarked questions
+  Future<List<String>> getBookmarkedQuestions(String username) async {
+    final res = await _dio.get('$_base/users/$username/bookmarks');
+    return List<String>.from(res.data['bookmarks'] ?? []);
+  }
+
+  /// Update spaced repetition review data
+  Future<void> updateQuestionReview(String username, String questionId, {bool? isCorrect, double? easeFactor, int? interval, DateTime? reviewDate}) async {
+    final data = <String, dynamic>{};
+    if (isCorrect != null) data['isCorrect'] = isCorrect;
+    if (easeFactor != null) data['easeFactor'] = easeFactor;
+    if (interval != null) data['interval'] = interval;
+    if (reviewDate != null) data['reviewDate'] = reviewDate.toIso8601String();
+    
+    await _dio.put('$_base/users/$username/question-history/$questionId/review', data: data);
+  }
+
   // FINANCIAL LITERACY TEXTBOOK
   /// Fetch a specific Financial Literacy textbook unit with all chapters.
   Future<Response> fetchFinancialTextbookUnit(int unitNumber) async {

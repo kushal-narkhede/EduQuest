@@ -817,6 +817,249 @@ app.delete('/users/:username/block/:blockUsername', async (req, res) => {
   }
 });
 
+// STUDY PROGRESS TRACKING
+// Save question attempt
+app.post('/users/:username/study-progress/attempt', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { questionId, course, chapter, isCorrect, timeSpent } = req.body;
+    
+    if (!questionId || !course || !chapter || typeof isCorrect !== 'boolean') {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const user = await ensureUser(username);
+    
+    // Initialize studyProgress structure if needed
+    if (!user.studyProgress) user.studyProgress = new Map();
+    if (!user.studyProgress.get(course)) user.studyProgress.set(course, new Map());
+    
+    const courseProgress = user.studyProgress.get(course);
+    if (!courseProgress.get(chapter)) {
+      courseProgress.set(chapter, {
+        questionsAttempted: 0,
+        questionsCorrect: 0,
+        accuracy: 0,
+        masteryLevel: 'Novice',
+        lastStudied: new Date(),
+        timeSpent: 0
+      });
+    }
+    
+    const chapterProgress = courseProgress.get(chapter);
+    chapterProgress.questionsAttempted += 1;
+    if (isCorrect) chapterProgress.questionsCorrect += 1;
+    chapterProgress.accuracy = chapterProgress.questionsCorrect / chapterProgress.questionsAttempted;
+    chapterProgress.lastStudied = new Date();
+    chapterProgress.timeSpent = (chapterProgress.timeSpent || 0) + (timeSpent || 0);
+    
+    // Calculate mastery level
+    if (chapterProgress.accuracy >= 0.8) chapterProgress.masteryLevel = 'Master';
+    else if (chapterProgress.accuracy >= 0.6) chapterProgress.masteryLevel = 'Learning';
+    else chapterProgress.masteryLevel = 'Novice';
+    
+    // Add to question history
+    if (!user.questionHistory) user.questionHistory = [];
+    user.questionHistory.push({
+      questionId,
+      course,
+      chapter,
+      isCorrect,
+      timestamp: new Date(),
+      timeSpent: timeSpent || 0
+    });
+    
+    // Update weak areas
+    if (!user.weakAreas) user.weakAreas = new Map();
+    const weakChapters = [];
+    courseProgress.forEach((progress, ch) => {
+      if (progress.accuracy < 0.7 && progress.questionsAttempted >= 5) {
+        weakChapters.push(ch);
+      }
+    });
+    user.weakAreas.set(course, weakChapters);
+    
+    await user.save();
+    return res.json({ ok: true, progress: chapterProgress });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get chapter progress
+app.get('/users/:username/study-progress/:course/:chapter', async (req, res) => {
+  try {
+    const { username, course, chapter } = req.params;
+    const user = await ensureUser(username);
+    
+    if (!user.studyProgress || !user.studyProgress.get(course) || !user.studyProgress.get(course).get(chapter)) {
+      return res.json({
+        questionsAttempted: 0,
+        questionsCorrect: 0,
+        accuracy: 0,
+        masteryLevel: 'Novice',
+        lastStudied: null,
+        timeSpent: 0
+      });
+    }
+    
+    const progress = user.studyProgress.get(course).get(chapter);
+    return res.json(progress);
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get all progress for a course
+app.get('/users/:username/study-progress/:course', async (req, res) => {
+  try {
+    const { username, course } = req.params;
+    const user = await ensureUser(username);
+    
+    if (!user.studyProgress || !user.studyProgress.get(course)) {
+      return res.json({ chapters: {} });
+    }
+    
+    const courseProgress = {};
+    user.studyProgress.get(course).forEach((progress, chapter) => {
+      courseProgress[chapter] = progress;
+    });
+    
+    return res.json({ chapters: courseProgress });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get weak areas
+app.get('/users/:username/study-progress/:course/weak-areas', async (req, res) => {
+  try {
+    const { username, course } = req.params;
+    const user = await ensureUser(username);
+    
+    if (!user.weakAreas || !user.weakAreas.get(course)) {
+      return res.json({ weakAreas: [] });
+    }
+    
+    return res.json({ weakAreas: user.weakAreas.get(course) || [] });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get question history
+app.get('/users/:username/question-history', async (req, res) => {
+  try {
+    const { course, chapter } = req.query;
+    const user = await ensureUser(req.params.username);
+    
+    let history = user.questionHistory || [];
+    
+    if (course) {
+      history = history.filter(h => h.course === course);
+    }
+    if (chapter) {
+      history = history.filter(h => h.chapter === chapter);
+    }
+    
+    return res.json({ history });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// BOOKMARKING
+// Bookmark a question
+app.post('/users/:username/bookmarks', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { questionId } = req.body;
+    
+    if (!questionId) return res.status(400).json({ error: 'Missing questionId' });
+    
+    const user = await ensureUser(username);
+    if (!user.bookmarkedQuestions) user.bookmarkedQuestions = [];
+    if (!user.bookmarkedQuestions.includes(questionId)) {
+      user.bookmarkedQuestions.push(questionId);
+    }
+    
+    await user.save();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Remove bookmark
+app.delete('/users/:username/bookmarks/:questionId', async (req, res) => {
+  try {
+    const { username, questionId } = req.params;
+    const user = await ensureUser(username);
+    
+    if (!user.bookmarkedQuestions) user.bookmarkedQuestions = [];
+    user.bookmarkedQuestions = user.bookmarkedQuestions.filter(id => id !== questionId);
+    
+    await user.save();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get bookmarked questions
+app.get('/users/:username/bookmarks', async (req, res) => {
+  try {
+    const user = await ensureUser(req.params.username);
+    return res.json({ bookmarks: user.bookmarkedQuestions || [] });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update spaced repetition data
+app.put('/users/:username/question-history/:questionId/review', async (req, res) => {
+  try {
+    const { username, questionId } = req.params;
+    const { isCorrect, easeFactor, interval, reviewDate } = req.body;
+    
+    const user = await ensureUser(username);
+    const historyItem = user.questionHistory?.find(h => h.questionId === questionId);
+    
+    if (historyItem) {
+      if (easeFactor !== undefined) historyItem.easeFactor = easeFactor;
+      if (interval !== undefined) historyItem.interval = interval;
+      if (reviewDate) historyItem.reviewDate = new Date(reviewDate);
+      if (isCorrect !== undefined) {
+        historyItem.isCorrect = isCorrect;
+        historyItem.repetitions = (historyItem.repetitions || 0) + 1;
+      }
+    }
+    
+    await user.save();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    if (e.status === 404) return res.status(404).json({ error: e.message });
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // --- Server Startup ---
 
 app.listen(PORT, '0.0.0.0', () => {

@@ -18,7 +18,7 @@ class DatabaseHelper {
   DatabaseHelper._internal();
 
   final RemoteApiClient _remote = RemoteApiClient();
-  static const List<String> _baseFreeThemes = ['halloween', 'space'];
+  static const List<String> _baseFreeThemes = ['space', 'halloween'];
 
   static bool _isBaseTheme(String theme) => _baseFreeThemes.contains(theme);
 
@@ -106,10 +106,10 @@ class DatabaseHelper {
   
   Future<String?> getCurrentTheme(String username) async {
     try {
-      return await _remote.getCurrentTheme(username) ?? 'halloween';
+      return await _remote.getCurrentTheme(username) ?? 'space';
     } catch (e) {
       print('DEBUG: Error getting theme: $e');
-      return 'halloween';
+      return 'space';
     }
   }
 
@@ -396,6 +396,101 @@ class DatabaseHelper {
   Future<List<Map<String, dynamic>>> getStudySetQuestions(int studySetId) async {
     print('DEBUG: getStudySetQuestions stub - not implemented in MongoDB yet');
     return [];
+  }
+
+  // ========== STUDY PROGRESS TRACKING ==========
+  
+  Future<void> saveQuestionAttempt(String username, String questionId, String course, String chapter, bool isCorrect, {int? timeSpent}) async {
+    try {
+      await _remote.saveQuestionAttempt(username, questionId, course, chapter, isCorrect, timeSpent: timeSpent);
+    } catch (e) {
+      print('DEBUG: Error saving question attempt: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getChapterProgress(String username, String course, String chapter) async {
+    try {
+      return await _remote.getChapterProgress(username, course, chapter);
+    } catch (e) {
+      print('DEBUG: Error getting chapter progress: $e');
+      return {
+        'questionsAttempted': 0,
+        'questionsCorrect': 0,
+        'accuracy': 0.0,
+        'masteryLevel': 'Novice',
+        'lastStudied': null,
+        'timeSpent': 0,
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> getCourseProgress(String username, String course) async {
+    try {
+      return await _remote.getCourseProgress(username, course);
+    } catch (e) {
+      print('DEBUG: Error getting course progress: $e');
+      return {'chapters': {}};
+    }
+  }
+
+  Future<List<String>> getWeakAreas(String username, String course) async {
+    try {
+      return await _remote.getWeakAreas(username, course);
+    } catch (e) {
+      print('DEBUG: Error getting weak areas: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getQuestionHistory(String username, {String? course, String? chapter}) async {
+    try {
+      return await _remote.getQuestionHistory(username, course: course, chapter: chapter);
+    } catch (e) {
+      print('DEBUG: Error getting question history: $e');
+      return [];
+    }
+  }
+
+  // ========== BOOKMARKING ==========
+  
+  Future<void> bookmarkQuestion(String username, String questionId) async {
+    try {
+      await _remote.bookmarkQuestion(username, questionId);
+    } catch (e) {
+      print('DEBUG: Error bookmarking question: $e');
+    }
+  }
+
+  Future<void> removeBookmark(String username, String questionId) async {
+    try {
+      await _remote.removeBookmark(username, questionId);
+    } catch (e) {
+      print('DEBUG: Error removing bookmark: $e');
+    }
+  }
+
+  Future<List<String>> getBookmarkedQuestions(String username) async {
+    try {
+      return await _remote.getBookmarkedQuestions(username);
+    } catch (e) {
+      print('DEBUG: Error getting bookmarked questions: $e');
+      return [];
+    }
+  }
+
+  Future<void> updateQuestionReview(String username, String questionId, {bool? isCorrect, double? easeFactor, int? interval, DateTime? reviewDate}) async {
+    try {
+      await _remote.updateQuestionReview(
+        username,
+        questionId,
+        isCorrect: isCorrect,
+        easeFactor: easeFactor,
+        interval: interval,
+        reviewDate: reviewDate,
+      );
+    } catch (e) {
+      print('DEBUG: Error updating question review: $e');
+    }
   }
 
   Future<void> removeImportedSet(String username, int studySetId) async {

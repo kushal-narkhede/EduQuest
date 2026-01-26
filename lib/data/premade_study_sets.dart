@@ -160,94 +160,94 @@ class PremadeStudySetsRepository {
 
     // Robotics premade set removed per request
 
-    // Financial Literacy
-    PremadeStudySet(
-      name: 'Financial Literacy',
-      description: 'Personal finance essentials',
-      subject: 'Finance',
-      questions: [
-        Question(
-          questionText: 'What is the difference between a credit card and a debit card?',
-          options: [
-            'Credit cards borrow money, debit cards use your own money',
-            'Debit cards borrow money, credit cards use your own money',
-            'They are the same thing',
-            'Credit cards are only for online purchases'
-          ],
-          correctAnswer: 'Credit cards borrow money, debit cards use your own money',
-        ),
-        Question(
-          questionText: 'What is a credit score used for?',
-          options: [
-            'To determine your creditworthiness and loan eligibility',
-            'To calculate your income tax',
-            'To determine your age',
-            'To track your shopping habits'
-          ],
-          correctAnswer: 'To determine your creditworthiness and loan eligibility',
-        ),
-        Question(
-          questionText: 'What is compound interest?',
-          options: [
-            'Interest earned on interest',
-            'Interest that stays the same each year',
-            'Interest only on the principal',
-            'Interest paid monthly instead of yearly'
-          ],
-          correctAnswer: 'Interest earned on interest',
-        ),
-        Question(
-          questionText: 'What is a budget?',
-          options: [
-            'A plan for spending and saving money',
-            'Money borrowed from a bank',
-            'A tax return form',
-            'Money saved in a savings account'
-          ],
-          correctAnswer: 'A plan for spending and saving money',
-        ),
-        Question(
-          questionText: 'What is an emergency fund?',
-          options: [
-            'Savings set aside for unexpected expenses',
-            'Money for vacation',
-            'Money for shopping',
-            'Money for investments'
-          ],
-          correctAnswer: 'Savings set aside for unexpected expenses',
-        ),
-        Question(
-          questionText: 'What is diversification in investing?',
-          options: [
-            'Spreading investments across different asset types to reduce risk',
-            'Investing all money in one stock',
-            'Trading frequently',
-            'Borrowing money to invest'
-          ],
-          correctAnswer: 'Spreading investments across different asset types to reduce risk',
-        ),
-        Question(
-          questionText: 'What is inflation?',
-          options: [
-            'The increase in prices of goods and services over time',
-            'The decrease in prices of goods and services',
-            'A type of currency',
-            'A banking fee'
-          ],
-          correctAnswer: 'The increase in prices of goods and services over time',
-        ),
-        Question(
-          questionText: 'What is a mortgage?',
-          options: [
-            'A loan used to purchase real estate',
-            'Insurance for your home',
-            'A savings account for home purchases',
-            'A payment for property taxes'
-          ],
-          correctAnswer: 'A loan used to purchase real estate',
-        ),
-      ],
-    ),
+    // Financial Literacy - Disabled for now
+    // PremadeStudySet(
+    //   name: 'Financial Literacy',
+    //   description: 'Personal finance essentials',
+    //   subject: 'Finance',
+    //   questions: [
+    //     Question(
+    //       questionText: 'What is the difference between a credit card and a debit card?',
+    //       options: [
+    //         'Credit cards borrow money, debit cards use your own money',
+    //         'Debit cards borrow money, credit cards use your own money',
+    //         'They are the same thing',
+    //         'Credit cards are only for online purchases'
+    //       ],
+    //       correctAnswer: 'Credit cards borrow money, debit cards use your own money',
+    //     ),
+    //     Question(
+    //       questionText: 'What is a credit score used for?',
+    //       options: [
+    //         'To determine your creditworthiness and loan eligibility',
+    //         'To calculate your income tax',
+    //         'To determine your age',
+    //         'To track your shopping habits'
+    //       ],
+    //       correctAnswer: 'To determine your creditworthiness and loan eligibility',
+    //     ),
+    //     Question(
+    //       questionText: 'What is compound interest?',
+    //       options: [
+    //         'Interest earned on interest',
+    //         'Interest that stays the same each year',
+    //         'Interest only on the principal',
+    //         'Interest paid monthly instead of yearly'
+    //       ],
+    //       correctAnswer: 'Interest earned on interest',
+    //     ),
+    //     Question(
+    //       questionText: 'What is a budget?',
+    //       options: [
+    //         'A plan for spending and saving money',
+    //         'Money borrowed from a bank',
+    //         'A tax return form',
+    //         'Money saved in a savings account'
+    //       ],
+    //       correctAnswer: 'A plan for spending and saving money',
+    //     ),
+    //     Question(
+    //       questionText: 'What is an emergency fund?',
+    //       options: [
+    //         'Savings set aside for unexpected expenses',
+    //         'Money for vacation',
+    //         'Money for shopping',
+    //         'Money for investments'
+    //       ],
+    //       correctAnswer: 'Savings set aside for unexpected expenses',
+    //     ),
+    //     Question(
+    //       questionText: 'What is diversification in investing?',
+    //       options: [
+    //         'Spreading investments across different asset types to reduce risk',
+    //         'Investing all money in one stock',
+    //         'Trading frequently',
+    //         'Borrowing money to invest'
+    //       ],
+    //       correctAnswer: 'Spreading investments across different asset types to reduce risk',
+    //     ),
+    //     Question(
+    //       questionText: 'What is inflation?',
+    //       options: [
+    //         'The increase in prices of goods and services over time',
+    //         'The decrease in prices of goods and services',
+    //         'A type of currency',
+    //         'A banking fee'
+    //       ],
+    //       correctAnswer: 'The increase in prices of goods and services over time',
+    //     ),
+    //     Question(
+    //       questionText: 'What is a mortgage?',
+    //       options: [
+    //         'A loan used to purchase real estate',
+    //         'Insurance for your home',
+    //         'A savings account for home purchases',
+    //         'A payment for property taxes'
+    //       ],
+    //       correctAnswer: 'A loan used to purchase real estate',
+    //     ),
+    //   ],
+    // ),
 
     // AP Calculus BC
     PremadeStudySet(

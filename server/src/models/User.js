@@ -21,6 +21,19 @@ const MessageSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }, { _id: false });
 
+const QuestionHistorySchema = new mongoose.Schema({
+  questionId: String,
+  course: String,
+  chapter: String,
+  isCorrect: Boolean,
+  timestamp: { type: Date, default: Date.now },
+  timeSpent: Number, // seconds
+  reviewDate: Date, // for spaced repetition
+  easeFactor: { type: Number, default: 2.5 }, // for spaced repetition
+  interval: { type: Number, default: 1 }, // days until next review
+  repetitions: { type: Number, default: 0 }
+}, { _id: false });
+
 const UserSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true, index: true },
@@ -35,7 +48,12 @@ const UserSchema = new mongoose.Schema(
     friendRequests: { type: [FriendRequestSchema], default: [] }, // incoming + outgoing
     inbox: { type: [MessageSchema], default: [] },
     blockedUsers: { type: [String], default: [] },
-    lastSeen: { type: Date, default: Date.now }
+    lastSeen: { type: Date, default: Date.now },
+    // Study progress tracking
+    studyProgress: { type: Map, of: Map, default: {} }, // course -> chapter -> progress data
+    questionHistory: { type: [QuestionHistorySchema], default: [] },
+    bookmarkedQuestions: { type: [String], default: [] }, // question IDs
+    weakAreas: { type: Map, of: [String], default: {} } // course -> array of weak chapter names
   },
   { timestamps: true }
 );

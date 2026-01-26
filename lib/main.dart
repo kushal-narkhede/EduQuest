@@ -36,7 +36,12 @@ import 'package:student_learning_app/screens/inbox_screen.dart';
 import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
 import 'screens/financial_literacy_screen.dart';
 import 'screens/financial_textbook_screen.dart';
+import 'screens/ap_calculus_ab_chapter_selection_screen.dart';
 import 'screens/robotics_screen.dart';
+import 'screens/review_incorrect_screen.dart';
+import 'screens/bookmarked_questions_screen.dart';
+import 'screens/review_queue_screen.dart';
+import 'helpers/spaced_repetition_helper.dart';
 
 /**
  * Main entry point for the EduQuest learning application.
@@ -1296,7 +1301,7 @@ class SpaceBackground extends StatefulWidget {
   State<SpaceBackground> createState() => _SpaceBackgroundState();
 }
 
-class _SpaceBackgroundState extends State<SpaceBackground> with SingleTickerProviderStateMixin {
+class _SpaceBackgroundState extends State<SpaceBackground> {
   static const int _starCount = 90;
   final List<_Star> _stars = [];
   late final AnimationController _controller;
@@ -1306,9 +1311,10 @@ class _SpaceBackgroundState extends State<SpaceBackground> with SingleTickerProv
   void initState() {
     super.initState();
     _seedStars();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 8))
-      ..addListener(_tick)
-      ..repeat();
+    // Animation controller disabled - stars are now static
+    // _controller = AnimationController(vsync: this, duration: const Duration(seconds: 8))
+    //   ..addListener(_tick)
+    //   ..repeat();
   }
 
   void _seedStars() {
@@ -1318,31 +1324,32 @@ class _SpaceBackgroundState extends State<SpaceBackground> with SingleTickerProv
         x: _rand.nextDouble(),
         y: _rand.nextDouble(),
         size: 1.0 + _rand.nextDouble() * 1.5,
-        vx: (_rand.nextDouble() - 0.5) * 0.003, // very slow drift horizontally
-        vy: 0.0015 + _rand.nextDouble() * 0.004, // very slow drift vertically
+        vx: 0, // No movement
+        vy: 0, // No movement
         twinkle: _rand.nextDouble() * pi * 2,
-        twinkleSpeed: 0.002 + _rand.nextDouble() * 0.004, // slow twinkle
+        twinkleSpeed: 0, // No twinkle animation
       ));
     }
   }
 
-  void _tick() {
-    setState(() {
-      for (final star in _stars) {
-        star.x += star.vx;
-        star.y += star.vy;
-        if (star.x < 0) star.x += 1;
-        if (star.x > 1) star.x -= 1;
-        if (star.y > 1) star.y -= 1;
-        star.twinkle += star.twinkleSpeed;
-        if (star.twinkle > pi * 2) star.twinkle -= pi * 2;
-      }
-    });
-  }
+  // Animation tick disabled - stars are now static
+  // void _tick() {
+  //   setState(() {
+  //     for (final star in _stars) {
+  //       star.x += star.vx;
+  //       star.y += star.vy;
+  //       if (star.x < 0) star.x += 1;
+  //       if (star.x > 1) star.x -= 1;
+  //       if (star.y > 1) star.y -= 1;
+  //       star.twinkle += star.twinkleSpeed;
+  //       if (star.twinkle > pi * 2) star.twinkle -= pi * 2;
+  //     }
+  //   });
+  // }
 
   @override
   void dispose() {
-    _controller.dispose();
+    // _controller.dispose();
     super.dispose();
   }
 
@@ -1364,7 +1371,7 @@ class _SpaceBackgroundState extends State<SpaceBackground> with SingleTickerProv
               left: star.x * size.width,
               top: star.y * size.height,
               child: Opacity(
-                opacity: 0.35 + 0.65 * (0.5 * (1 + sin(star.twinkle))),
+                opacity: 0.7, // Fixed opacity - no twinkle animation
                 child: Container(
                   width: star.size,
                   height: star.size,
@@ -3980,7 +3987,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  String _currentTheme = 'halloween';
+  String _currentTheme = 'space';
   int _userPoints = 0;
   bool _developerMode = false;
   final DatabaseHelper _dbHelper = DatabaseHelper();
@@ -4004,7 +4011,7 @@ class _MainScreenState extends State<MainScreen> {
     final theme = await _dbHelper.getCurrentTheme(widget.username);
     setState(() {
       _userPoints = points;
-      _currentTheme = theme ?? 'halloween';
+      _currentTheme = theme ?? 'space';
       _developerMode = widget.username == 'EduQuest';
     });
   }
@@ -5675,11 +5682,27 @@ class _LearnTabState extends State<LearnTab>
     // Check if this is exactly AP Computer Science A
     String studySetName = studySet['name']?.toString() ?? '';
     bool isAPCompSciA = studySetName == 'AP Computer Science A';
+    bool isAPCalculusAB = studySetName == 'AP Calculus AB';
     bool isSATReadingWriting = studySetName == 'SAT Reading & Writing';
-    bool isFinancialLiteracy = studySetName == 'Financial Literacy';
+    // bool isFinancialLiteracy = studySetName == 'Financial Literacy'; // Disabled for now
     bool isRobotics = studySetName.startsWith('Robotics');
 
-    if (isAPCompSciA) {
+    if (isAPCalculusAB) {
+      // Show chapter selection for AP Calculus AB
+      Navigator.push(
+        this.context,
+        MaterialPageRoute(
+          builder: (context) => APCalculusABChapterSelectionScreen(
+            studySet: studySet,
+            username: widget.username,
+            currentTheme: widget.currentTheme,
+          ),
+        ),
+      ).then((_) {
+        // Refresh points when returning from practice
+        _loadUserData();
+      });
+    } else if (isAPCompSciA) {
       // Show practice mode selection for AP Computer Science A
       Navigator.push(
         this.context,
@@ -5697,56 +5720,57 @@ class _LearnTabState extends State<LearnTab>
     } else if (isSATReadingWriting) {
       // Show topic selection for SAT Reading & Writing
       _showSATTopicSelection(studySet);
-    } else if (isFinancialLiteracy) {
-      // Show the dedicated Financial Literacy chooser
-      Navigator.push(
-        this.context,
-        MaterialPageRoute(
-          builder: (context) => FinancialLiteracyScreen(
-            currentTheme: widget.currentTheme,
-            onTextBook: () {
-              Navigator.of(context).pop();
-              Navigator.push(
-                this.context,
-                MaterialPageRoute(
-                  builder: (context) => FinancialTextbookScreen(
-                    currentTheme: widget.currentTheme,
-                  ),
-                ),
-              );
-            },
-            onQuestionBank: () {
-              Navigator.of(context).pop();
-              Navigator.push(
-                this.context,
-                MaterialPageRoute(
-                  builder: (context) => PracticeModeScreen(
-                    studySet: studySet,
-                    username: widget.username,
-                    currentTheme: widget.currentTheme,
-                  ),
-                ),
-              ).then((_) {
-                _loadUserData();
-              });
-            },
-            onPortfolio: () {
-              Navigator.of(context).pop();
-              Navigator.push(
-                this.context,
-                MaterialPageRoute(
-                  builder: (context) => PortfolioCompaniesScreen(
-                    currentTheme: widget.currentTheme,
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ).then((_) {
-        // Refresh points when returning from practice
-        _loadUserData();
-      });
+    // Financial Literacy disabled for now
+    // } else if (isFinancialLiteracy) {
+    //   // Show the dedicated Financial Literacy chooser
+    //   Navigator.push(
+    //     this.context,
+    //     MaterialPageRoute(
+    //       builder: (context) => FinancialLiteracyScreen(
+    //         currentTheme: widget.currentTheme,
+    //         onTextBook: () {
+    //           Navigator.of(context).pop();
+    //           Navigator.push(
+    //             this.context,
+    //             MaterialPageRoute(
+    //               builder: (context) => FinancialTextbookScreen(
+    //                 currentTheme: widget.currentTheme,
+    //               ),
+    //             ),
+    //           );
+    //         },
+    //         onQuestionBank: () {
+    //           Navigator.of(context).pop();
+    //           Navigator.push(
+    //             this.context,
+    //             MaterialPageRoute(
+    //               builder: (context) => PracticeModeScreen(
+    //                 studySet: studySet,
+    //                 username: widget.username,
+    //                 currentTheme: widget.currentTheme,
+    //               ),
+    //             ),
+    //           ).then((_) {
+    //             _loadUserData();
+    //           });
+    //         },
+    //         onPortfolio: () {
+    //           Navigator.of(context).pop();
+    //           Navigator.push(
+    //             this.context,
+    //             MaterialPageRoute(
+    //               builder: (context) => PortfolioCompaniesScreen(
+    //                 currentTheme: widget.currentTheme,
+    //               ),
+    //             ),
+    //           );
+    //         },
+    //       ),
+    //     ),
+    //   ).then((_) {
+    //     // Refresh points when returning from practice
+    //     _loadUserData();
+    //   });
     } else if (isRobotics) {
       // Show the dedicated Robotics quiz screen
       Navigator.push(
@@ -7239,6 +7263,10 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   bool _extraTimeUsed = false;
   List<String> _removedOptions = [];
   String informationAndIdeasPrompt = '';
+  
+  // Progress tracking
+  DateTime? _questionStartTime;
+  List<Map<String, dynamic>> _sessionAttempts = []; // Track attempts in this session
 
   @override
   bool get wantKeepAlive => true;
@@ -7664,6 +7692,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           _isLoading = false; // Stop loading indicator
           _showParseButton = false; // Hide parse button
           _aiResponse = null; // Clear AI response
+          // Initialize question timer and session tracking
+          _questionStartTime = DateTime.now();
+          _sessionAttempts = [];
         });
 
         print('Successfully loaded ${parsedQuestions.length} SAT questions');
@@ -8215,6 +8246,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
             _doublePointsActive = false;
             _extraTimeUsed = false;
             _removedOptions = [];
+            // Initialize question timer and session tracking
+            _questionStartTime = DateTime.now();
+            _sessionAttempts = [];
           });
         }
         break;
@@ -8252,6 +8286,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           _doublePointsActive = false;
           _extraTimeUsed = false;
           _removedOptions = [];
+          // Initialize question timer and session tracking
+          _questionStartTime = DateTime.now();
+          _sessionAttempts = [];
         });
     }
   }
@@ -8302,6 +8339,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           _doublePointsActive = false;
           _extraTimeUsed = false;
           _removedOptions = [];
+          // Initialize question timer and session tracking
+          _questionStartTime = DateTime.now();
+          _sessionAttempts = [];
         });
       } else {
         // Fallback: keep existing behavior
@@ -8309,6 +8349,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           _showModeSelection = false;
           _showQuizArea = true;
           _showScoreSummary = false;
+          // Initialize question timer and session tracking
+          _questionStartTime = DateTime.now();
+          _sessionAttempts = [];
         });
       }
     } catch (e) {
@@ -8844,11 +8887,107 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   }
 
   void _checkAnswer(String selectedAnswer) {
+    final currentQuestion = _questions[_currentQuestionIndex];
+    final correctAnswer = currentQuestion['correct_answer']?.toString() ?? 
+                         (currentQuestion['options'] is List 
+                          ? (currentQuestion['options'] as List)[currentQuestion['correct'] as int? ?? 0].toString()
+                          : '');
+    final isCorrect = selectedAnswer == correctAnswer;
+    
+    // Calculate time spent
+    final timeSpent = _questionStartTime != null 
+        ? DateTime.now().difference(_questionStartTime!).inSeconds 
+        : 0;
+    
+    // Extract course and chapter from study set name
+    String course = 'AP Calculus AB';
+    String chapter = 'Unknown';
+    
+    final studySetName = widget.studySet['name']?.toString() ?? '';
+    if (studySetName.contains(' - ')) {
+      final parts = studySetName.split(' - ');
+      if (parts.length >= 2) {
+        course = parts[0];
+        chapter = parts[1];
+      }
+    } else if (studySetName.contains('AP Calculus AB')) {
+      course = 'AP Calculus AB';
+      // Try to extract chapter from name
+      for (final ch in ['Limits and Continuity', 'Derivatives', 'Applications of Derivatives', 
+                        'Integrals', 'Applications of Integrals', 'Differential Equations']) {
+        if (studySetName.contains(ch)) {
+          chapter = ch;
+          break;
+        }
+      }
+    }
+    
+    // Generate question ID
+    final questionText = currentQuestion['question_text']?.toString() ?? '';
+    final questionId = '${course}_${chapter}_q${_currentQuestionIndex}_${questionText.hashCode}';
+    
+    // Track attempt
+    _sessionAttempts.add({
+      'questionId': questionId,
+      'course': course,
+      'chapter': chapter,
+      'isCorrect': isCorrect,
+      'timeSpent': timeSpent,
+    });
+    
+    // Track attempt in session
+    _sessionAttempts.add({
+      'questionId': questionId,
+      'course': course,
+      'chapter': chapter,
+      'isCorrect': isCorrect,
+      'timeSpent': timeSpent,
+    });
+    
+    // Save to database (async, don't wait)
+    _dbHelper.saveQuestionAttempt(
+      widget.username,
+      questionId,
+      course,
+      chapter,
+      isCorrect,
+      timeSpent: timeSpent,
+    );
+    
+    // Calculate and update spaced repetition data (async)
+    // Get existing history to find current values
+    _dbHelper.getQuestionHistory(widget.username, course: course, chapter: chapter).then((history) {
+      final existingItem = history.firstWhere(
+        (h) => h['questionId'] == questionId,
+        orElse: () => {},
+      );
+      
+      final currentEaseFactor = existingItem['easeFactor'] as double? ?? 2.5;
+      final currentInterval = existingItem['interval'] as int? ?? 1;
+      final currentRepetitions = existingItem['repetitions'] as int? ?? 0;
+      
+      final spacedRepData = SpacedRepetitionHelper.calculateNextReview(
+        currentEaseFactor: currentEaseFactor,
+        currentInterval: currentInterval,
+        repetitions: currentRepetitions,
+        isCorrect: isCorrect,
+      );
+      
+      // Update spaced repetition data
+      _dbHelper.updateQuestionReview(
+        widget.username,
+        questionId,
+        isCorrect: isCorrect,
+        easeFactor: spacedRepData['easeFactor'] as double,
+        interval: spacedRepData['interval'] as int,
+        reviewDate: DateTime.parse(spacedRepData['reviewDate'] as String),
+      );
+    });
+    
     setState(() {
       _selectedAnswer = selectedAnswer;
       _showAnswer = true;
-      if (selectedAnswer ==
-          (_questions[_currentQuestionIndex]['correct_answer']?.toString() ?? '')) {
+      if (isCorrect) {
         _correctAnswers++;
         // Award points for correct answer
         int pointsToAward = _doublePointsActive ? 30 : 15;
@@ -8877,6 +9016,8 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
         _fiftyFiftyUsed = false;
         _removedOptions = [];
         _skipUsed = false;
+        // Reset timer for next question
+        _questionStartTime = DateTime.now();
       });
     } else {
       setState(() {
@@ -9871,6 +10012,79 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                                           ),
                                         ),
                                       ),
+                                      
+                                      // Review Incorrect Button (only show if there are incorrect answers)
+                                      if (_sessionAttempts.any((a) => a['isCorrect'] == false))
+                                        Container(
+                                          width: double.infinity,
+                                          margin: const EdgeInsets.only(bottom: 16),
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              colors: [
+                                                Color(0xFFf5576c),
+                                                Color(0xFFf093fb)
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                            borderRadius: BorderRadius.circular(16),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: const Color(0xFFf5576c).withOpacity(0.3),
+                                                blurRadius: 12,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
+                                          ),
+                                          child: ElevatedButton.icon(
+                                            onPressed: () {
+                                              // Extract course and chapter from study set
+                                              String course = 'AP Calculus AB';
+                                              String? chapter;
+                                              final studySetName = widget.studySet['name']?.toString() ?? '';
+                                              if (studySetName.contains(' - ')) {
+                                                final parts = studySetName.split(' - ');
+                                                if (parts.length >= 2) {
+                                                  course = parts[0];
+                                                  chapter = parts[1];
+                                                }
+                                              }
+                                              
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => ReviewIncorrectScreen(
+                                                    username: widget.username,
+                                                    currentTheme: widget.currentTheme,
+                                                    course: course,
+                                                    chapter: chapter,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.transparent,
+                                              shadowColor: Colors.transparent,
+                                              padding: const EdgeInsets.symmetric(vertical: 16),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                            ),
+                                            icon: const Icon(
+                                              Icons.error_outline,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
+                                            label: Text(
+                                              'Review Incorrect (${_sessionAttempts.where((a) => a['isCorrect'] == false).length})',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
 
                                       // Enhanced Try Again Button
                                       Container(
@@ -10597,13 +10811,15 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                       ],
                     ),
                     child: Text(
-                      'Question ${_currentQuestionIndex + 1}/$totalQuestions',
+                      'Q${_currentQuestionIndex + 1}/$totalQuestions',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         letterSpacing: 0.5,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -10896,6 +11112,51 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+        // Bookmark button (shown when answer is revealed)
+        if (_showAnswer) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                icon: Icon(
+                  Icons.bookmark,
+                  color: Colors.blue,
+                  size: 28,
+                ),
+                onPressed: () async {
+                  final currentQuestion = _questions[_currentQuestionIndex];
+                  final questionText = currentQuestion['question_text']?.toString() ?? '';
+                  
+                  // Extract course and chapter
+                  String course = 'AP Calculus AB';
+                  String chapter = 'Unknown';
+                  final studySetName = widget.studySet['name']?.toString() ?? '';
+                  if (studySetName.contains(' - ')) {
+                    final parts = studySetName.split(' - ');
+                    if (parts.length >= 2) {
+                      course = parts[0];
+                      chapter = parts[1];
+                    }
+                  }
+                  
+                  // Generate question ID
+                  final questionId = '${course}_${chapter}_q${_currentQuestionIndex}_${questionText.hashCode}';
+                  
+                  await _dbHelper.bookmarkQuestion(widget.username, questionId);
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Question bookmarked!'),
+                      backgroundColor: Colors.blue,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ],

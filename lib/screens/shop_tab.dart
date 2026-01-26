@@ -64,6 +64,13 @@ class _ShopTabState extends State<ShopTab>
 
   final List<Map<String, dynamic>> _themes = [
     {
+      'name': 'Space',
+      'price': 0,
+      'color': const Color(0xFF0A0E21),
+      'description': 'Classic space theme with cosmic vibes',
+      'icon': Icons.rocket_launch,
+    },
+    {
       'name': 'Halloween',
       'price': 150,
       'color': const Color(0xFF4A148C),
@@ -83,13 +90,6 @@ class _ShopTabState extends State<ShopTab>
       'color': const Color(0xFF2E7D32),
       'description': 'Natural forest atmosphere',
       'icon': Icons.forest,
-    },
-    {
-      'name': 'Space',
-      'price': 0,
-      'color': const Color(0xFF0A0E21),
-      'description': 'Classic space theme with cosmic vibes',
-      'icon': Icons.rocket_launch,
     },
     {
       'name': 'Arctic',

@@ -1319,17 +1319,18 @@ class _MCQManagerState extends State<MCQManager> {
         },
       ],
     },
-    {
-      'name': 'Financial Literacy',
-      'color': [Color(0xFF667eea), Color(0xFF764ba2)],
-      'icon': Icons.account_balance_wallet,
-      'contents': [
-        'TextBook',
-        'Question Bank',
-        'Portfolio',
-      ],
-      'questions': const [],
-    },
+    // Financial Literacy disabled for now
+    // {
+    //   'name': 'Financial Literacy',
+    //   'color': [Color(0xFF667eea), Color(0xFF764ba2)],
+    //   'icon': Icons.account_balance_wallet,
+    //   'contents': [
+    //     'TextBook',
+    //     'Question Bank',
+    //     'Portfolio',
+    //   ],
+    //   'questions': const [],
+    // },
     {
       'name': 'AP Computer Science Principles',
       'color': [Color(0xFF43e97b), Color(0xFF38f9d7)],
@@ -5832,30 +5833,6 @@ class _MCQManagerState extends State<MCQManager> {
 
   Future<void> _importFinancialLiteracyContent(String contentType) async {
     try {
-      // Show loading state
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text('Importing $contentType...'),
-              ],
-            ),
-            backgroundColor: Colors.blue,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-
       // Get premade sets
       final premadeSets = PremadeStudySetsRepository.getPremadeSets();
       final setName = 'Financial Literacy';
@@ -5946,30 +5923,6 @@ class _MCQManagerState extends State<MCQManager> {
           );
         }
         return;
-      }
-
-      // Show loading state
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text('Importing $subjectName...'),
-              ],
-            ),
-            backgroundColor: Colors.blue,
-            duration: const Duration(seconds: 2),
-          ),
-        );
       }
 
       // Create a custom study set for the SAT subject
@@ -6222,30 +6175,6 @@ class _MCQManagerState extends State<MCQManager> {
         return;
       }
 
-      // Show loading state
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text('Importing $subjectName...'),
-              ],
-            ),
-            backgroundColor: Colors.blue,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-
       // Import the Robotics set
       await _dbHelper.importPremadeSet(widget.username, 0, setName: subjectName);
 
@@ -6317,13 +6246,14 @@ class _MCQManagerState extends State<MCQManager> {
         return;
       }
 
-      // Special handling for Financial Literacy course
-      print('DEBUG: Checking if subject is Financial Literacy: "$subjectName"');
-      if (subjectName == 'Financial Literacy') {
-        print('DEBUG: YES - showing Financial Literacy choice dialog');
-        await _showFinancialLiteracyChoice();
-        return;
-      }
+      // Financial Literacy disabled for now
+      // // Special handling for Financial Literacy course
+      // print('DEBUG: Checking if subject is Financial Literacy: "$subjectName"');
+      // if (subjectName == 'Financial Literacy') {
+      //   print('DEBUG: YES - showing Financial Literacy choice dialog');
+      //   await _showFinancialLiteracyChoice();
+      //   return;
+      // }
 
       // Special handling for SAT course
       print('DEBUG: Checking if subject is SAT: "$subjectName"');
@@ -6339,30 +6269,6 @@ class _MCQManagerState extends State<MCQManager> {
         print('DEBUG: YES - loading Robotics course with specialized features');
         await _importRoboticsCourse(subjectName);
         return;
-      }
-
-      // Show loading state
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text('Importing $subjectName...'),
-              ],
-            ),
-            backgroundColor: Colors.blue,
-            duration: const Duration(seconds: 2),
-          ),
-        );
       }
 
       // The set name should match the one in PremadeStudySetsRepository

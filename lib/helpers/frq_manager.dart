@@ -83,24 +83,20 @@ class SpaceBackground extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Twinkling stars
+          // Static stars (animation disabled)
           for (int i = 0; i < 50; i++)
             Positioned(
               left: math.Random().nextDouble() *
                   MediaQuery.of(context).size.width,
               top: math.Random().nextDouble() *
                   MediaQuery.of(context).size.height,
-              child: AnimatedContainer(
-                duration: Duration(seconds: math.Random().nextInt(3) + 1),
+              child: Container(
                 width: 2,
                 height: 2,
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                onEnd: () {
-                  // Restart animation
-                },
               ),
             ),
         ],

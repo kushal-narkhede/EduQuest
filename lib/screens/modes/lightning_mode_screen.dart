@@ -68,7 +68,7 @@ class SpaceBackground extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Twinkling stars
+          // Static stars (animation disabled)
           for (int i = 0; i < 50; i++)
             Positioned(
               left: (i * 37) % MediaQuery.of(context).size.width,
