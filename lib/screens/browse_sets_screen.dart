@@ -5875,12 +5875,14 @@ class _MCQManagerState extends State<MCQManager> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
           ),
         );
         
         // Notify parent that a set was imported
-        widget.onSetImported?.call();
+        if (mounted) {
+          widget.onSetImported?.call();
+        }
       }
     } catch (e) {
       print('Error importing Financial Literacy content: $e');
@@ -5918,7 +5920,7 @@ class _MCQManagerState extends State<MCQManager> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              margin: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
             ),
           );
         }
@@ -6015,13 +6017,15 @@ class _MCQManagerState extends State<MCQManager> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
           ),
         );
       }
 
-      // Notify parent to refresh
-      widget.onSetImported?.call();
+      // Notify parent to refresh (only if widget is still mounted)
+      if (mounted) {
+        widget.onSetImported?.call();
+      }
     } catch (e) {
       debugPrint('Error importing SAT subject: $e');
       if (mounted) {
@@ -6042,7 +6046,7 @@ class _MCQManagerState extends State<MCQManager> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
           ),
         );
       }
@@ -6168,7 +6172,7 @@ class _MCQManagerState extends State<MCQManager> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              margin: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
             ),
           );
         }
@@ -6196,12 +6200,14 @@ class _MCQManagerState extends State<MCQManager> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
           ),
         );
         
         // Notify parent that a set was imported
-        widget.onSetImported?.call();
+        if (mounted) {
+          widget.onSetImported?.call();
+        }
       }
     } catch (e) {
       print('Error importing Robotics course: $e');
@@ -6239,7 +6245,7 @@ class _MCQManagerState extends State<MCQManager> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              margin: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
             ),
           );
         }
@@ -6358,13 +6364,15 @@ class _MCQManagerState extends State<MCQManager> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
           ),
         );
       }
 
-      // Notify parent to refresh
-      widget.onSetImported?.call();
+      // Notify parent to refresh (only if widget is still mounted)
+      if (mounted) {
+        widget.onSetImported?.call();
+      }
     } catch (e) {
       debugPrint('Error importing set: $e');
       if (mounted) {
@@ -6385,7 +6393,7 @@ class _MCQManagerState extends State<MCQManager> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            margin: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
           ),
         );
       }

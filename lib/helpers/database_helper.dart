@@ -525,14 +525,22 @@ class DatabaseHelper {
 
   Future<void> importPremadeSet(String username, int studySetId, {String? setName}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      // Add timeout for SharedPreferences operations to prevent hanging
+      final prefs = await SharedPreferences.getInstance()
+          .timeout(const Duration(seconds: 5), onTimeout: () {
+        throw TimeoutException('SharedPreferences.getInstance() timed out');
+      });
+      
       final importedSetsJson = prefs.getString('imported_sets_$username') ?? '[]';
       final importedSetNames = List<String>.from(jsonDecode(importedSetsJson) ?? []);
       
       String? nameToImport = setName;
       if (nameToImport == null) {
         // Try to resolve name from premade sets by ID
-        final premadeSets = await getPremadeStudySets();
+        final premadeSets = await getPremadeStudySets()
+            .timeout(const Duration(seconds: 5), onTimeout: () {
+          throw TimeoutException('getPremadeStudySets() timed out');
+        });
         final match = premadeSets.firstWhere(
           (s) => s['id'] == studySetId || s['studySetId'] == studySetId,
           orElse: () => <String, dynamic>{},
@@ -546,14 +554,23 @@ class DatabaseHelper {
         final setNameFinal = nameToImport;
         if (!importedSetNames.contains(setNameFinal)) {
           importedSetNames.add(setNameFinal);
-          await prefs.setString('imported_sets_$username', jsonEncode(importedSetNames));
+          await prefs.setString('imported_sets_$username', jsonEncode(importedSetNames))
+              .timeout(const Duration(seconds: 5), onTimeout: () {
+            throw TimeoutException('SharedPreferences.setString() timed out');
+          });
           print('DEBUG: Successfully imported premade set: $setNameFinal');
         } else {
           print('DEBUG: Premade set already imported: $setNameFinal');
         }
       }
-    } catch (e) {
+    } on TimeoutException catch (e) {
+      print('DEBUG: Timeout error importing premade set: $e');
+      // Don't rethrow - log and continue to prevent crashes
+      // The import will be retried on next app launch if needed
+    } catch (e, stackTrace) {
       print('DEBUG: Error importing premade set: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      // Don't rethrow for other errors to prevent crashes, but log them
     }
   }
 

@@ -7803,6 +7803,17 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
         
         // Handle both 'options' and 'correct_answer' or 'correctAnswer' keys
         final optionsKey = question.containsKey('options') ? 'options' : null;
+        // Also handle 'correct' as an index - convert to 'correct_answer'
+        if (question.containsKey('correct') && !question.containsKey('correct_answer') && !question.containsKey('correctAnswer')) {
+          // 'correct' is an index, need to get the actual answer from options
+          final options = question['options'];
+          if (options is List && options.isNotEmpty) {
+            final correctIndex = question['correct'] as int?;
+            if (correctIndex != null && correctIndex >= 0 && correctIndex < options.length) {
+              question['correct_answer'] = options[correctIndex].toString();
+            }
+          }
+        }
         final correctAnswerKey = question.containsKey('correct_answer') ? 'correct_answer' :
                                  question.containsKey('correctAnswer') ? 'correctAnswer' : null;
         

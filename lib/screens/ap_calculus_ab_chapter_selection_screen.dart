@@ -4,7 +4,6 @@ import '../main.dart' show getBackgroundForTheme, ThemeColors, PracticeModeScree
 import '../helpers/database_helper.dart';
 import 'study_statistics_screen.dart';
 import 'bookmarked_questions_screen.dart';
-import 'review_queue_screen.dart';
 import 'mock_exam_screen.dart';
 import 'study_plan_screen.dart';
 
@@ -48,14 +47,27 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
       final progressMap = <String, Map<String, dynamic>>{};
       for (final chapter in apCalculusABChapters) {
         final chapterData = chapters[chapter.name] as Map<String, dynamic>?;
-        progressMap[chapter.name] = chapterData ?? {
-          'questionsAttempted': 0,
-          'questionsCorrect': 0,
-          'accuracy': 0.0,
-          'masteryLevel': 'Novice',
-          'lastStudied': null,
-          'timeSpent': 0,
-        };
+        if (chapterData != null) {
+          // Normalize accuracy to double (handles both int and double from database)
+          final accuracyValue = chapterData['accuracy'];
+          final normalizedAccuracy = accuracyValue is double 
+              ? accuracyValue 
+              : (accuracyValue is int ? accuracyValue.toDouble() : 0.0);
+          
+          progressMap[chapter.name] = {
+            ...chapterData,
+            'accuracy': normalizedAccuracy,
+          };
+        } else {
+          progressMap[chapter.name] = {
+            'questionsAttempted': 0,
+            'questionsCorrect': 0,
+            'accuracy': 0.0,
+            'masteryLevel': 'Novice',
+            'lastStudied': null,
+            'timeSpent': 0,
+          };
+        }
       }
       
       final weakAreas = await _dbHelper.getWeakAreas(widget.username, 'AP Calculus AB');
@@ -86,7 +98,7 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
               children: [
                 // Header
                 Container(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -96,9 +108,14 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
                             icon: Icon(
                               Icons.arrow_back,
                               color: ThemeColors.getTextColor(widget.currentTheme),
+                              size: 20,
                             ),
+                            iconSize: 20,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,18 +123,18 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
                                 Text(
                                   'AP Calculus AB',
                                   style: TextStyle(
-                                    fontSize: 24,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: ThemeColors.getTextColor(widget.currentTheme),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2),
                                 Text(
-                                  'Select a chapter to study',
+                                  'Select a chapter',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 13,
                                     color: ThemeColors.getTextColor(widget.currentTheme)
                                         .withOpacity(0.8),
                                   ),
@@ -127,12 +144,17 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
                               ],
                             ),
                           ),
+                          const SizedBox(width: 4),
                           // Statistics button
                           IconButton(
                             icon: Icon(
                               Icons.analytics,
                               color: ThemeColors.getTextColor(widget.currentTheme),
+                              size: 18,
                             ),
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -146,12 +168,17 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
                               ).then((_) => _loadProgress());
                             },
                           ),
+                          const SizedBox(width: 2),
                           // Bookmarked questions button
                           IconButton(
                             icon: Icon(
                               Icons.bookmark,
                               color: ThemeColors.getTextColor(widget.currentTheme),
+                              size: 18,
                             ),
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -165,31 +192,17 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
                               );
                             },
                           ),
-                          // Review queue button
-                          IconButton(
-                            icon: Icon(
-                              Icons.schedule,
-                              color: ThemeColors.getTextColor(widget.currentTheme),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ReviewQueueScreen(
-                                    username: widget.username,
-                                    currentTheme: widget.currentTheme,
-                                    course: 'AP Calculus AB',
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                          const SizedBox(width: 2),
                           // Mock exam button
                           IconButton(
                             icon: Icon(
                               Icons.quiz,
                               color: ThemeColors.getTextColor(widget.currentTheme),
+                              size: 18,
                             ),
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -203,12 +216,17 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
                               ).then((_) => _loadProgress());
                             },
                           ),
+                          const SizedBox(width: 2),
                           // Study plan button
                           IconButton(
                             icon: Icon(
                               Icons.calendar_today,
                               color: ThemeColors.getTextColor(widget.currentTheme),
+                              size: 18,
                             ),
+                            iconSize: 18,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                             onPressed: () {
                               Navigator.push(
                                 context,
@@ -273,7 +291,11 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
     };
     
     final questionsAttempted = progress['questionsAttempted'] as int? ?? 0;
-    final accuracy = progress['accuracy'] as double? ?? 0.0;
+    // Safely convert accuracy to double (handles both int and double)
+    final accuracyValue = progress['accuracy'];
+    final accuracy = accuracyValue is double 
+        ? accuracyValue 
+        : (accuracyValue is int ? accuracyValue.toDouble() : 0.0);
     final masteryLevel = progress['masteryLevel'] as String? ?? 'Novice';
     final totalQuestions = chapter.questions.length;
     final completionPercent = totalQuestions > 0 ? (questionsAttempted / totalQuestions) : 0.0;
@@ -327,11 +349,15 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
           borderRadius: BorderRadius.circular(20),
           onTap: () {
             // Convert chapter questions to the format expected by PracticeModeScreen
-            final questions = chapter.questions.map((q) => {
-              'question': q.questionText,
-              'options': q.options,
-              'correct': q.correctIndex,
-              'explanation': q.explanation,
+            final questions = chapter.questions.map((q) {
+              // Convert correct index to correct_answer string
+              final correctAnswer = q.options[q.correctIndex];
+              return {
+                'question': q.questionText,
+                'options': q.options,
+                'correct_answer': correctAnswer,
+                'explanation': q.explanation,
+              };
             }).toList();
 
             final chapterStudySet = {
@@ -531,8 +557,15 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
       
       switch (_sortType) {
         case 'Progress':
-          final accuracyA = progressA?['accuracy'] as double? ?? 0.0;
-          final accuracyB = progressB?['accuracy'] as double? ?? 0.0;
+          // Safely convert accuracy to double (handles both int and double)
+          final accuracyAValue = progressA?['accuracy'];
+          final accuracyBValue = progressB?['accuracy'];
+          final accuracyA = accuracyAValue is double 
+              ? accuracyAValue 
+              : (accuracyAValue is int ? accuracyAValue.toDouble() : 0.0);
+          final accuracyB = accuracyBValue is double 
+              ? accuracyBValue 
+              : (accuracyBValue is int ? accuracyBValue.toDouble() : 0.0);
           return accuracyA.compareTo(accuracyB);
         case 'Last Studied':
           final lastA = progressA?['lastStudied'];
@@ -663,11 +696,15 @@ class _APCalculusABChapterSelectionScreenState extends State<APCalculusABChapter
   }
 
   void _navigateToChapter(APCalculusABChapter chapter) {
-    final questions = chapter.questions.map((q) => {
-      'question': q.questionText,
-      'options': q.options,
-      'correct': q.correctIndex,
-      'explanation': q.explanation,
+    final questions = chapter.questions.map((q) {
+      // Convert correct index to correct_answer string
+      final correctAnswer = q.options[q.correctIndex];
+      return {
+        'question': q.questionText,
+        'options': q.options,
+        'correct_answer': correctAnswer,
+        'explanation': q.explanation,
+      };
     }).toList();
 
     final chapterStudySet = {
