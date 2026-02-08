@@ -36,12 +36,26 @@ import 'package:student_learning_app/screens/inbox_screen.dart';
 import 'package:student_learning_app/widgets/atmospheric/atmospheric.dart';
 import 'screens/financial_literacy_screen.dart';
 import 'screens/financial_textbook_screen.dart';
-import 'screens/ap_calculus_ab_chapter_selection_screen.dart';
+import 'screens/ap_course_chapter_selection_screen.dart';
 import 'screens/robotics_screen.dart';
 import 'screens/review_incorrect_screen.dart';
 import 'screens/bookmarked_questions_screen.dart';
-import 'screens/review_queue_screen.dart';
 import 'helpers/spaced_repetition_helper.dart';
+import 'data/ap_course_chapters.dart';
+import 'data/ap_calculus_ab_chapters.dart';
+import 'data/ap_calculus_bc_chapters.dart';
+import 'data/ap_statistics_chapters.dart';
+import 'data/ap_physics_1_chapters.dart';
+import 'data/ap_physics_2_chapters.dart';
+import 'data/ap_chemistry_chapters.dart';
+import 'data/ap_computer_science_a_chapters.dart';
+import 'data/ap_computer_science_principles_chapters.dart';
+import 'data/ap_environmental_science_chapters.dart';
+import 'data/ap_biology_chapters.dart';
+import 'data/ap_physics_c_mechanics_chapters.dart';
+import 'data/ap_english_literature_chapters.dart';
+import 'data/ap_us_history_chapters.dart';
+import 'data/ap_world_history_chapters.dart';
 
 /**
  * Main entry point for the EduQuest learning application.
@@ -5681,36 +5695,40 @@ class _LearnTabState extends State<LearnTab>
     
     // Check if this is exactly AP Computer Science A
     String studySetName = studySet['name']?.toString() ?? '';
-    bool isAPCompSciA = studySetName == 'AP Computer Science A';
-    bool isAPCalculusAB = studySetName == 'AP Calculus AB';
     bool isSATReadingWriting = studySetName == 'SAT Reading & Writing';
     // bool isFinancialLiteracy = studySetName == 'Financial Literacy'; // Disabled for now
     bool isRobotics = studySetName.startsWith('Robotics');
 
-    if (isAPCalculusAB) {
-      // Show chapter selection for AP Calculus AB
+    final Map<String, List<APCourseChapter>> apCourseChapters = {
+      'AP Calculus AB': apCalculusABChapters,
+      'AP Calculus BC': apCalculusBCChapters,
+      'AP Statistics': apStatisticsChapters,
+      'AP Physics 1': apPhysics1Chapters,
+      'AP Physics 2': apPhysics2Chapters,
+      'AP Chemistry': apChemistryChapters,
+      'AP Computer Science A': apComputerScienceAChapters,
+      'AP Computer Science Principles': apComputerSciencePrinciplesChapters,
+      'AP Environmental Science': apEnvironmentalScienceChapters,
+      'AP Biology': apBiologyChapters,
+      'AP Physics C: Mechanics': apPhysicsCMechanicsChapters,
+      'AP English Literature': apEnglishLiteratureChapters,
+      'AP US History': apUSHistoryChapters,
+      'AP World History': apWorldHistoryChapters,
+    };
+
+    final apChapters = apCourseChapters[studySetName];
+
+    if (apChapters != null) {
+      // Show chapter selection for AP courses
       Navigator.push(
         this.context,
         MaterialPageRoute(
-          builder: (context) => APCalculusABChapterSelectionScreen(
+          builder: (context) => APCourseChapterSelectionScreen(
             studySet: studySet,
             username: widget.username,
             currentTheme: widget.currentTheme,
-          ),
-        ),
-      ).then((_) {
-        // Refresh points when returning from practice
-        _loadUserData();
-      });
-    } else if (isAPCompSciA) {
-      // Show practice mode selection for AP Computer Science A
-      Navigator.push(
-        this.context,
-        MaterialPageRoute(
-          builder: (context) => PracticeTypeChoiceScreen(
-            studySet: studySet,
-            username: widget.username,
-            currentTheme: widget.currentTheme,
+            courseName: studySetName,
+            chapters: apChapters,
           ),
         ),
       ).then((_) {

@@ -2,19 +2,22 @@ import 'package:flutter/material.dart';
 import '../main.dart' show getBackgroundForTheme, ThemeColors;
 import '../helpers/database_helper.dart';
 import '../helpers/analytics_helper.dart';
-import '../data/ap_calculus_ab_chapters.dart';
+import '../data/ap_course_chapters.dart';
 
 /// Screen displaying study statistics and analytics for a course
 class StudyStatisticsScreen extends StatefulWidget {
   final String username;
   final String currentTheme;
   final String course;
+  /// When provided, used for chapter list and breakdown (e.g. from AP course chapter selection).
+  final List<APCourseChapter>? chapters;
 
   const StudyStatisticsScreen({
     super.key,
     required this.username,
     required this.currentTheme,
     required this.course,
+    this.chapters,
   });
 
   @override
@@ -48,27 +51,46 @@ class _StudyStatisticsScreenState extends State<StudyStatisticsScreen> {
     try {
       // Load course progress
       final courseProgress = await _dbHelper.getCourseProgress(widget.username, widget.course);
-      final chapters = courseProgress['chapters'] as Map<String, dynamic>? ?? {};
+      final apiChapters = courseProgress['chapters'] as Map<String, dynamic>? ?? {};
       
       final progressMap = <String, Map<String, dynamic>>{};
       int totalAttempted = 0;
       int totalCorrect = 0;
       int totalTime = 0;
       
-      for (final chapter in apCalculusABChapters) {
-        final chapterData = chapters[chapter.name] as Map<String, dynamic>?;
-        final data = chapterData ?? {
-          'questionsAttempted': 0,
-          'questionsCorrect': 0,
-          'accuracy': 0.0,
-          'masteryLevel': 'Novice',
-          'lastStudied': null,
-          'timeSpent': 0,
-        };
-        progressMap[chapter.name] = data;
-        totalAttempted += data['questionsAttempted'] as int? ?? 0;
-        totalCorrect += data['questionsCorrect'] as int? ?? 0;
-        totalTime += data['timeSpent'] as int? ?? 0;
+      if (widget.chapters != null) {
+        for (final chapter in widget.chapters!) {
+          final chapterData = apiChapters[chapter.name] as Map<String, dynamic>?;
+          final data = chapterData ?? {
+            'questionsAttempted': 0,
+            'questionsCorrect': 0,
+            'accuracy': 0.0,
+            'masteryLevel': 'Novice',
+            'lastStudied': null,
+            'timeSpent': 0,
+          };
+          progressMap[chapter.name] = data;
+          totalAttempted += data['questionsAttempted'] as int? ?? 0;
+          totalCorrect += data['questionsCorrect'] as int? ?? 0;
+          totalTime += data['timeSpent'] as int? ?? 0;
+        }
+      } else {
+        for (final entry in apiChapters.entries) {
+          final data = entry.value is Map<String, dynamic>
+              ? Map<String, dynamic>.from(entry.value as Map)
+              : <String, dynamic>{
+                  'questionsAttempted': 0,
+                  'questionsCorrect': 0,
+                  'accuracy': 0.0,
+                  'masteryLevel': 'Novice',
+                  'lastStudied': null,
+                  'timeSpent': 0,
+                };
+          progressMap[entry.key] = data;
+          totalAttempted += data['questionsAttempted'] as int? ?? 0;
+          totalCorrect += data['questionsCorrect'] as int? ?? 0;
+          totalTime += data['timeSpent'] as int? ?? 0;
+        }
       }
       
       // Load weak areas
@@ -499,6 +521,157 @@ class _StudyStatisticsScreenState extends State<StudyStatisticsScreen> {
   Widget _buildChapterBreakdown() {
     final textColor = ThemeColors.getTextColor(widget.currentTheme);
     
+    if (widget.chapters != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Chapter Breakdown',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...widget.chapters!.map((chapter) {
+            final progress = _chapterProgress[chapter.name] ?? {
+              'questionsAttempted': 0,
+              'questionsCorrect': 0,
+              'accuracy': 0.0,
+              'masteryLevel': 'Novice',
+              'lastStudied': null,
+              'timeSpent': 0,
+            };
+            final questionsAttempted = progress['questionsAttempted'] as int? ?? 0;
+            final questionsCorrect = progress['questionsCorrect'] as int? ?? 0;
+            final accuracy = progress['accuracy'] as double? ?? 0.0;
+            final masteryLevel = progress['masteryLevel'] as String? ?? 'Novice';
+            final totalQuestions = chapter.questions.length;
+            final completionPercent = totalQuestions > 0 ? (questionsAttempted / totalQuestions) : 0.0;
+            Color masteryColor;
+            if (masteryLevel == 'Master') {
+              masteryColor = Colors.green;
+            } else if (masteryLevel == 'Learning') {
+              masteryColor = Colors.orange;
+            } else {
+              masteryColor = Colors.red;
+            }
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: masteryColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: masteryColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${chapter.unitNumber}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: masteryColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              chapter.name,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$questionsAttempted/$totalQuestions questions • ${(accuracy * 100).toStringAsFixed(0)}% accuracy',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: textColor.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: masteryColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          masteryLevel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: masteryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: completionPercent,
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      valueColor: AlwaysStoppedAnimation<Color>(masteryColor),
+                      minHeight: 6,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      );
+    }
+    
+    // No chapter list: show breakdown from API data only
+    final entries = _chapterProgress.entries.toList();
+    if (entries.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Chapter Breakdown',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No chapter data yet. Study some chapters to see your progress here.',
+            style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.8)),
+          ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -511,23 +684,12 @@ class _StudyStatisticsScreenState extends State<StudyStatisticsScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        ...apCalculusABChapters.map((chapter) {
-          final progress = _chapterProgress[chapter.name] ?? {
-            'questionsAttempted': 0,
-            'questionsCorrect': 0,
-            'accuracy': 0.0,
-            'masteryLevel': 'Novice',
-            'lastStudied': null,
-            'timeSpent': 0,
-          };
-          
+        ...entries.map((e) {
+          final progress = e.value;
           final questionsAttempted = progress['questionsAttempted'] as int? ?? 0;
           final questionsCorrect = progress['questionsCorrect'] as int? ?? 0;
           final accuracy = progress['accuracy'] as double? ?? 0.0;
           final masteryLevel = progress['masteryLevel'] as String? ?? 'Novice';
-          final totalQuestions = chapter.questions.length;
-          final completionPercent = totalQuestions > 0 ? (questionsAttempted / totalQuestions) : 0.0;
-          
           Color masteryColor;
           if (masteryLevel == 'Master') {
             masteryColor = Colors.green;
@@ -536,7 +698,6 @@ class _StudyStatisticsScreenState extends State<StudyStatisticsScreen> {
           } else {
             masteryColor = Colors.red;
           }
-          
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
@@ -548,78 +709,44 @@ class _StudyStatisticsScreenState extends State<StudyStatisticsScreen> {
                 width: 1,
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: masteryColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${chapter.unitNumber}',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: masteryColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            chapter.name,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '$questionsAttempted/$totalQuestions questions • ${(accuracy * 100).toStringAsFixed(0)}% accuracy',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: textColor.withOpacity(0.7),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: masteryColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        masteryLevel,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        e.key,
                         style: TextStyle(
-                          fontSize: 11,
-                          color: masteryColor,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: textColor,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '$questionsAttempted attempted • ${(accuracy * 100).toStringAsFixed(0)}% accuracy',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textColor.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: completionPercent,
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(masteryColor),
-                    minHeight: 6,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: masteryColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    masteryLevel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: masteryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],

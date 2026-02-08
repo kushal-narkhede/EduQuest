@@ -1,0 +1,33 @@
+AP CSP 2024 FRQ Answer Guide (Practice)
+
+Q1 (6 points): Data & Digital Information
+- Describes using a list/table to store step counts per day or per user.
+- Explains data abstraction as hiding implementation details while exposing useful operations.
+- Provides a correct weekly summary example (total steps, average steps, or trend).
+- Mentions iteration over the data to compute summary values.
+- Mentions how abstraction supports reuse or scalability.
+- Includes clear, accurate explanation.
+
+Q2 (6 points): Algorithms and Programming
+- Initializes a maximum variable to the first element.
+- Iterates through each element in the list.
+- Updates the maximum when a larger value is found.
+- Outputs or returns the maximum at the end.
+- States time complexity O(n).
+- Uses clear, high-level pseudocode description.
+
+Q3 (6 points): Internet and Networks
+- Identifies two valid issues (latency, bandwidth limits, packet loss, jitter, congestion).
+- Explains how each issue affects video calls.
+- Provides a mitigation for each (lower bitrate, wired connection, QoS, retries, different network).
+- Uses accurate networking terminology.
+- Responses are specific to the scenario.
+- Includes clear cause-and-mitigation pairing.
+
+Q4 (6 points): Impact of Computing
+- Identifies a benefit (efficiency, deterrence, consistency, scale).
+- Identifies a risk (false positives, bias, privacy, lack of transparency).
+- Explains why the risk matters.
+- Suggests a mitigation (human review, transparency, appeals process, audits).
+- Notes ethical or social impact.
+- Response is clear and actionable.

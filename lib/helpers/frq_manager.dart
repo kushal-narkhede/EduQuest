@@ -15,7 +15,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
  * This list defines the question identifiers for the 2024 AP CS A exam,
  * including subparts for questions that have multiple components.
  */
-const List<String> manualQuestions = [
+const List<String> csaQuestionIds = [
   'Q1a',
   'Q1b',
   'Q2',
@@ -31,7 +31,7 @@ const List<String> manualQuestions = [
  * This map associates each question identifier with its corresponding
  * point value as defined by the College Board scoring guidelines.
  */
-const Map<String, int> questionPointValues = {
+const Map<String, int> csaQuestionPointValues = {
   'Q1a': 4,
   'Q1b': 5,
   'Q2': 9,
@@ -134,6 +134,18 @@ class FRQManager extends StatefulWidget {
   final String currentTheme;
   /** The number of FRQ questions in the practice session */
   final int frqCount;
+  /** Optional title for the FRQ practice screen */
+  final String title;
+  /** Question IDs used for grading */
+  final List<String> questionIds;
+  /** Point values for each question ID */
+  final Map<String, int> questionPointValues;
+  /** Asset path for the FRQ prompt text */
+  final String questionsAssetPath;
+  /** Asset path for official answers and rubrics */
+  final String answersAssetPath;
+  /** Instruction header for AI grading */
+  final String graderPrompt;
   
   /**
    * Creates a new FRQManager instance.
@@ -149,7 +161,14 @@ class FRQManager extends StatefulWidget {
       required this.studySet,
       required this.username,
       required this.currentTheme,
-      required this.frqCount});
+      required this.frqCount,
+      this.title = 'AP CS A FRQ Practice',
+      this.questionIds = csaQuestionIds,
+      this.questionPointValues = csaQuestionPointValues,
+      this.questionsAssetPath = 'assets/apfrq/APCompSciA2024.txt',
+      this.answersAssetPath = 'assets/apcs_2024_frq_answers.txt',
+      this.graderPrompt =
+          'You are an AP Computer Science A FRQ grader. Please grade the following student answers according to the official rubric.'});
 
   @override
   State<FRQManager> createState() => _FRQManagerState();
@@ -185,7 +204,7 @@ class _FRQManagerState extends State<FRQManager> {
           extendBodyBehindAppBar: true,
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            title: const Text('AP CS A FRQ Practice'),
+            title: Text(widget.title),
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
             elevation: 0,
@@ -198,7 +217,12 @@ class _FRQManagerState extends State<FRQManager> {
                     year: '2024',
                     frqCount: widget.frqCount,
                     username: widget.username,
-                    currentTheme: widget.currentTheme),
+                    currentTheme: widget.currentTheme,
+                    questionIds: widget.questionIds,
+                    questionPointValues: widget.questionPointValues,
+                    questionsAssetPath: widget.questionsAssetPath,
+                    answersAssetPath: widget.answersAssetPath,
+                    graderPrompt: widget.graderPrompt),
               ),
             ],
           ),
@@ -464,12 +488,20 @@ class PDFViewerScreen extends StatefulWidget {
   final String year;
   final int frqCount;
   final String currentTheme;
+  final List<String> questionIds;
+  final Map<String, int> questionPointValues;
+  final String answersAssetPath;
+  final String graderPrompt;
   const PDFViewerScreen(
       {super.key,
       required this.filePath,
       required this.year,
       required this.frqCount,
-      required this.currentTheme});
+      required this.currentTheme,
+      required this.questionIds,
+      required this.questionPointValues,
+      required this.answersAssetPath,
+      required this.graderPrompt});
 
   @override
   State<PDFViewerScreen> createState() => _PDFViewerScreenState();
@@ -517,21 +549,16 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
       StringBuffer promptContent = StringBuffer();
 
       // Add instructions for the AI
-      promptContent.writeln(
-          'You are an AP Computer Science A FRQ grader. Please grade the following student answers according to the official rubric.');
+      promptContent.writeln(widget.graderPrompt);
       promptContent.writeln(
           '\nFor each question, provide your response in the following format:');
       promptContent.writeln(
           '[question number ||| points awarded ||| detailed feedback ||| correct solution]');
       promptContent.writeln(
           '\nPoints should be awarded according to the official rubric:');
-      promptContent.writeln('Q1a: 3 points - Array manipulation and logic');
-      promptContent.writeln('Q1b: 3 points - Array traversal and conditionals');
-      promptContent.writeln('Q2: 4 points - Class implementation and methods');
-      promptContent.writeln('Q3a: 3 points - Method implementation');
-      promptContent.writeln('Q3b: 3 points - Method implementation');
-      promptContent.writeln('Q4a: 3 points - Class design and implementation');
-      promptContent.writeln('Q4b: 3 points - Method implementation');
+      for (final entry in widget.questionPointValues.entries) {
+        promptContent.writeln('${entry.key}: ${entry.value} points');
+      }
       promptContent.writeln('\nFor each answer, provide:');
       promptContent.writeln('1. Points awarded (0 to max points)');
       promptContent.writeln(
@@ -541,7 +568,7 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
 
       // Add user answers to the prompt
       promptContent.writeln('=== User Answers ===');
-      for (String question in manualQuestions.take(widget.frqCount)) {
+      for (String question in widget.questionIds.take(widget.frqCount)) {
         promptContent.writeln('\nQuestion: $question');
         promptContent.writeln('Answer: ${answers[question] ?? "Not answered"}');
         promptContent.writeln('-------------------');
@@ -549,8 +576,7 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
 
       // Load and add the official answers and rubric
       promptContent.writeln('\n=== Official Answers and Rubrics ===');
-      final frqData =
-          await rootBundle.loadString('assets/apcs_2024_frq_answers.txt');
+      final frqData = await rootBundle.loadString(widget.answersAssetPath);
       promptContent.writeln(frqData);
       promptContent.writeln('=== End of Official Answers ===\n');
 
@@ -606,7 +632,7 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
                       pointsAwarded = int.parse(match.group(1)!);
                     }
                     // Get max points based on question - Updated to match AP CS A 2024 FRQ
-                    int maxPoints = questionPointValues[questionNumber] ??
+                    int maxPoints = widget.questionPointValues[questionNumber] ??
                         3; // Default to 3 if not found
                     results.add(FrqGradingResult(
                       subpart: questionNumber,
@@ -936,7 +962,7 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
                               child: Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
-                                children: manualQuestions
+                                children: widget.questionIds
                                     .take(widget.frqCount)
                                     .map((q) {
                                   return ElevatedButton(
@@ -967,7 +993,7 @@ class _PDFViewerScreenState extends State<PDFViewerScreen> {
                               // Print all user answers to console
                               print('\n=== User Answers ===');
                               for (String question
-                                  in manualQuestions.take(widget.frqCount)) {
+                                  in widget.questionIds.take(widget.frqCount)) {
                                 print('Question: $question');
                                 print(
                                     'Answer: ${answers[question] ?? "Not answered"}');
@@ -1129,13 +1155,23 @@ class FRQTextDisplayScreen extends StatefulWidget {
   final int frqCount;
   final String username;
   final String currentTheme;
+  final List<String> questionIds;
+  final Map<String, int> questionPointValues;
+  final String questionsAssetPath;
+  final String answersAssetPath;
+  final String graderPrompt;
 
   const FRQTextDisplayScreen(
       {super.key,
       required this.year,
       required this.frqCount,
       required this.username,
-      required this.currentTheme});
+      required this.currentTheme,
+      required this.questionIds,
+      required this.questionPointValues,
+      required this.questionsAssetPath,
+      required this.answersAssetPath,
+      required this.graderPrompt});
 
   @override
   State<FRQTextDisplayScreen> createState() => _FRQTextDisplayScreenState();
@@ -1181,7 +1217,7 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
   Future<void> _loadQuestions() async {
     try {
       final String content =
-          await rootBundle.loadString('assets/apfrq/APCompSciA2024.txt');
+          await rootBundle.loadString(widget.questionsAssetPath);
       final List<String> questionList = content.split(
           '-----------------------------------------------------------------------------');
 
@@ -1279,7 +1315,7 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
       }
 
       // Ensure pointsAwarded doesn't exceed maxPoints
-      final maxPoints = questionPointValues[q] ?? 3;
+      final maxPoints = widget.questionPointValues[q] ?? 3;
       if (pointsAwarded > maxPoints) {
         pointsAwarded = maxPoints;
       }
@@ -1324,11 +1360,11 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
     }
 
     // Log any missing questions
-    for (String question in manualQuestions.take(widget.frqCount)) {
+    for (String question in widget.questionIds.take(widget.frqCount)) {
       if (!parsedQuestions.contains(question.toUpperCase())) {
         print('DEBUG: Missing parsed question: $question');
         // Add missing result with 0 points and placeholder feedback
-        final maxPoints = questionPointValues[question] ?? 3;
+        final maxPoints = widget.questionPointValues[question] ?? 3;
         final userAnswer = answers[question] ?? '';
         final isUnanswered = userAnswer.isEmpty;
         
@@ -1765,7 +1801,7 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
               : () {
                   // Check if at least one answer was provided
                   bool hasAnyAnswer = false;
-                  for (String question in manualQuestions.take(widget.frqCount)) {
+                  for (String question in widget.questionIds.take(widget.frqCount)) {
                     final answer = answers[question]?.trim() ?? '';
                     if (answer.isNotEmpty) {
                       hasAnyAnswer = true;
@@ -1830,7 +1866,7 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
     try {
       // Load the FRQ file
       final frqData =
-          await rootBundle.loadString('assets/apcs_2024_frq_answers.txt');
+          await rootBundle.loadString(widget.answersAssetPath);
       
       // Parse canonical answers from the file
       final Map<String, String> canonicalAnswers = {};
@@ -1923,7 +1959,7 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
 
       // Add instructions for the AI
       promptContent.writeln(
-          'You are an AP Computer Science A FRQ grader. Please grade EVERY student answer listed below according to the official rubric. You MUST provide a response for each and every question.');
+          '${widget.graderPrompt} You MUST provide a response for each and every question.');
       promptContent.writeln(
           '\n⚠️ CRITICAL GRADING RULES:');
       promptContent.writeln(
@@ -1931,20 +1967,16 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
       promptContent.writeln(
           '2. NEVER award full or partial credit for unanswered questions');
       promptContent.writeln(
-          '3. Grade all 7 questions - do not skip any');
+          '3. Grade all ${widget.frqCount} questions - do not skip any');
       promptContent.writeln(
           '4. Use EXACT format: [question number ||| points awarded ||| detailed feedback]');
       promptContent.writeln(
           '5. DO NOT include the solution in your response - we have that already');
       promptContent.writeln(
           '\nPoint values (NEVER exceed these maximums):');
-      promptContent.writeln('Q1a: 4 points maximum');
-      promptContent.writeln('Q1b: 5 points maximum');
-      promptContent.writeln('Q2: 9 points maximum');
-      promptContent.writeln('Q3a: 3 points maximum');
-      promptContent.writeln('Q3b: 6 points maximum');
-      promptContent.writeln('Q4a: 3 points maximum');
-      promptContent.writeln('Q4b: 6 points maximum');
+      for (final entry in widget.questionPointValues.entries) {
+        promptContent.writeln('${entry.key}: ${entry.value} points maximum');
+      }
       promptContent.writeln('\nFor each answer provide:');
       promptContent.writeln('1. Points awarded (0 to the maximum for that question)');
       promptContent.writeln('2. Detailed feedback explaining what was correct/incorrect');
@@ -1952,7 +1984,7 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
 
       // Add user answers to the prompt
       promptContent.writeln('=== User Answers ===');
-      for (String question in manualQuestions.take(widget.frqCount)) {
+      for (String question in widget.questionIds.take(widget.frqCount)) {
         promptContent.writeln('\nQuestion: $question');
         promptContent.writeln('Answer: ${answers[question] ?? "Not answered"}');
         promptContent.writeln('-------------------');

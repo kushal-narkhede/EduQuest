@@ -1,38 +1,12 @@
+import 'ap_course_chapters.dart';
+
 /// AP Calculus AB Chapter-based question structure
 /// Organized by College Board curriculum units
 
-class APCalculusABChapter {
-  final String name;
-  final String description;
-  final int unitNumber;
-  final List<ChapterQuestion> questions;
-
-  const APCalculusABChapter({
-    required this.name,
-    required this.description,
-    required this.unitNumber,
-    required this.questions,
-  });
-}
-
-class ChapterQuestion {
-  final String questionText;
-  final List<String> options;
-  final int correctIndex;
-  final String explanation;
-
-  const ChapterQuestion({
-    required this.questionText,
-    required this.options,
-    required this.correctIndex,
-    required this.explanation,
-  });
-}
-
 /// All AP Calculus AB chapters with comprehensive question banks
-final List<APCalculusABChapter> apCalculusABChapters = [
+final List<APCourseChapter> apCalculusABChapters = [
   // Unit 1: Limits and Continuity
-  APCalculusABChapter(
+  APCourseChapter(
     name: 'Limits and Continuity',
     description: 'Understanding limits, continuity, and asymptotic behavior',
     unitNumber: 1,
@@ -186,7 +160,7 @@ final List<APCalculusABChapter> apCalculusABChapters = [
   ),
 
   // Unit 2: Derivatives
-  APCalculusABChapter(
+  APCourseChapter(
     name: 'Derivatives',
     description: 'Definition, rules, and techniques for finding derivatives',
     unitNumber: 2,
@@ -375,7 +349,7 @@ final List<APCalculusABChapter> apCalculusABChapters = [
   ),
 
   // Unit 3: Applications of Derivatives
-  APCalculusABChapter(
+  APCourseChapter(
     name: 'Applications of Derivatives',
     description: 'Using derivatives to analyze functions, optimization, and related rates',
     unitNumber: 3,
@@ -614,7 +588,7 @@ final List<APCalculusABChapter> apCalculusABChapters = [
   ),
 
   // Unit 4: Integrals
-  APCalculusABChapter(
+  APCourseChapter(
     name: 'Integrals',
     description: 'Antiderivatives, definite integrals, and integration techniques',
     unitNumber: 4,
@@ -808,7 +782,7 @@ final List<APCalculusABChapter> apCalculusABChapters = [
   ),
 
   // Unit 5: Applications of Integrals
-  APCalculusABChapter(
+  APCourseChapter(
     name: 'Applications of Integrals',
     description: 'Area, volume, and other applications of integration',
     unitNumber: 5,
@@ -990,7 +964,7 @@ final List<APCalculusABChapter> apCalculusABChapters = [
   ),
 
   // Unit 6: Differential Equations
-  APCalculusABChapter(
+  APCourseChapter(
     name: 'Differential Equations',
     description: 'Solving separable differential equations and slope fields',
     unitNumber: 6,

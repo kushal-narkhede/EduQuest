@@ -1,0 +1,38 @@
+AP CSP 2024 Practice FRQs
+-----------------------------------------------------------------------------
+Q1. Data & Digital Information
+Prompt: A student is building an app that collects step counts from users.
+Explain how data abstraction can be used to store and process the step data.
+Provide an example of how the app could summarize the data for a weekly report.
+
+Suggested response should include:
+- A data structure (list/array/table) that stores step counts
+- Abstraction allows managing complexity by hiding low-level details
+- Example summary such as average, total, or trend
+-----------------------------------------------------------------------------
+Q2. Algorithms and Programming
+Prompt: A program scans a list of temperatures and outputs the highest value.
+Write a high-level algorithm in pseudocode and describe its time complexity.
+
+Suggested response should include:
+- Initialize max to first value
+- Loop through list and update max when larger value found
+- Complexity O(n)
+-----------------------------------------------------------------------------
+Q3. Internet and Networks
+Prompt: A video call stutters during a class session.
+Explain two possible network issues that could cause this and one mitigation for each.
+
+Suggested response should include:
+- Latency, packet loss, bandwidth limits, congestion
+- Mitigations: wired connection, lower resolution, QoS, retry/ACK
+-----------------------------------------------------------------------------
+Q4. Impact of Computing
+Prompt: A school uses AI to detect plagiarism.
+Describe one benefit and one risk of this system.
+Explain how the school could address the risk.
+
+Suggested response should include:
+- Benefit: efficiency, consistency, deterrence
+- Risk: false positives, bias, privacy
+- Mitigation: human review, transparency, opt-out, audits

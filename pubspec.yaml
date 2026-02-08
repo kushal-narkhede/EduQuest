@@ -88,6 +88,8 @@ flutter:
     - assets/images/Background.png
     - assets/apcs_2024_frq_answers.txt
     - assets/apfrq/APCompSciA2024.txt
+    - assets/apcsp_2024_frq_answers.txt
+    - assets/apfrq/APCompSciPrinciples2024.txt
 
 ## Note: The `platforms` section with pluginClass/dartPluginClass is for plugin packages, not apps.
 ## It has been removed to satisfy pubspec schema and avoid build errors.
