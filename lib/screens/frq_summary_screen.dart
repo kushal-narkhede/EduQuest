@@ -101,12 +101,11 @@ class _FrqSummaryScreenState extends State<FrqSummaryScreen> {
   Widget build(BuildContext context) {
     // Calculate total points and max points using the correct point values
     int totalPoints = 0;
-    int maxTotalPoints = 0;
+    // FIXED: Always use 36 as the total possible points for AP CSA FRQ
+    const int maxTotalPoints = 36;
 
     for (var result in widget.results) {
-      int maxPoints = questionPointValues[result.subpart] ?? result.maxPoints;
       totalPoints += result.pointsAwarded;
-      maxTotalPoints += maxPoints;
     }
 
     double percentage =
@@ -574,7 +573,7 @@ class _FrqResultCardState extends State<_FrqResultCard>
                   _buildDetailSection(
                     'Correct Answer:',
                     widget.result.canonicalAnswer.isEmpty
-                        ? 'No correct answer provided by grader. Please review the official rubric.'
+                        ? 'Answer not available in rubric'
                         : widget.result.canonicalAnswer,
                     Icons.check_circle_outline,
                   ),

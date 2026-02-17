@@ -133,9 +133,11 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       // Provide user-friendly error messages based on the actual error
       String friendly;
       if (err.contains('User not found')) {
-        friendly = "Invalid OpenRouter API key. Please update your OPENROUTER_API_KEY in .env file.";
+        friendly = "Invalid AI API key. Please update your OPENROUTER_API_KEY in .env file.";
       } else if (err.contains('API key is not configured')) {
-        friendly = "OpenRouter API key not found. Please check your .env file.";
+        friendly = "AI API key not found. Please check your .env file for OPENROUTER_API_KEY.";
+      } else if (err.contains('429') || err.contains('quota') || err.contains('RESOURCE_EXHAUSTED')) {
+        friendly = "OpenRouter API quota exceeded. Please check your billing or try again later.";
       } else if (err.contains('rate') || err.contains('429')) {
         friendly = "AI is rate-limited. Please try again in ~30 seconds.";
       } else if (err.contains('503') || err.contains('No endpoints found')) {

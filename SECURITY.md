@@ -12,8 +12,8 @@ All sensitive information is stored in `.env` files which are **NOT** committed 
 2. Fill in your actual API keys:
 
 ```bash
-# OpenRouter API Key for AI features
-OPENROUTER_API_KEY=your_actual_key_here
+# Gemini / Google API Key for AI features
+GEMINI_API_KEY=your_actual_key_here
 
 # Backend API URL
 API_BASE_URL=https://your-backend-url.com
@@ -63,7 +63,7 @@ The following files are in `.gitignore` and will never be committed:
 
 ## Getting API Keys
 
-- **OpenRouter**: Sign up at https://openrouter.ai/ and generate an API key
+- **Google Gemini / Gemini**: Get your Google API key for Gemini (or place your provider key in `GEMINI_API_KEY`) and follow provider docs for setup
 - **MongoDB Atlas**: Create a free cluster at https://www.mongodb.com/cloud/atlas
 - **Clerk** (optional): Get credentials from https://clerk.com/
 

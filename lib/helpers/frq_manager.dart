@@ -1286,20 +1286,41 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
         [String? canonicalAnswer]) {
       final q = questionNumber.trim().toUpperCase();
       if (parsedQuestions.contains(q)) {
-        print('DEBUG: Duplicate question $q, skipping');
         return;
       }
       parsedQuestions.add(q);
 
       final f = feedback.trim();
       // Use provided canonical answer or look it up from stored answers
-      final ca = (canonicalAnswer?.trim() ?? _storedCanonicalAnswers[q] ?? '').isEmpty
-          ? _storedCanonicalAnswers[q] ?? '[Answer not found in rubric]'
-          : (canonicalAnswer?.trim() ?? '');
+      final providedAnswer = canonicalAnswer?.trim() ?? '';
+      
+      // Look up stored answer with case-insensitive matching
+      String storedAnswer = '';
+      for (final key in _storedCanonicalAnswers.keys) {
+        if (key.toUpperCase() == q.toUpperCase()) {
+          storedAnswer = _storedCanonicalAnswers[key] ?? '';
+          break;
+        }
+      }
+      
+      final ca = providedAnswer.isNotEmpty ? providedAnswer : (storedAnswer.isNotEmpty ? storedAnswer : '[Answer not available in rubric]');
       final ps = pointsStr.trim();
 
       // Check if student actually answered this question
-      final userAnswer = answers[q] ?? '';
+      // Try different key formats (Q1A, Q1a, q1a) to find the answer
+      String userAnswer = '';
+      for (final key in answers.keys) {
+        if (key.toUpperCase() == q.toUpperCase()) {
+          userAnswer = answers[key] ?? '';
+          break;
+        }
+      }
+      
+      // If still not found, try direct lookup
+      if (userAnswer.isEmpty) {
+        userAnswer = answers[q] ?? '';
+      }
+      
       final isUnanswered = userAnswer.isEmpty || userAnswer.toLowerCase().contains('not answered');
 
       int pointsAwarded = 0;
@@ -1310,7 +1331,6 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
 
       // CRITICAL: If student didn't answer, force 0 points regardless of AI response
       if (isUnanswered) {
-        print('DEBUG: Question $q is unanswered - forcing 0 points');
         pointsAwarded = 0;
       }
 
@@ -1328,44 +1348,74 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
         maxPoints: maxPoints,
         feedback: f,
       ));
-      print('DEBUG: Parsed $q: $pointsAwarded/$maxPoints, unanswered=$isUnanswered, canonical answer length: ${ca.length}');
     }
 
-    // Try bracketed format first (3 parts: Q# ||| points ||| feedback)
-    final entryRegex = RegExp(
-      r"\[(Q\d+[a-zA-Z]?)\s*\|\|\|\s*([^|\]]+?)\|\|\|\s*([\s\S]*?)\]",
-      multiLine: true,
-    );
-    final matches = entryRegex.allMatches(text).toList();
+    // Simple approach: Split by lines starting with [ and parse each block
+    final lines = text.split('\n');
+    final blocks = <String>[];
+    String currentBlock = '';
+    
+    for (final line in lines) {
+      if (line.trim().startsWith('[') && currentBlock.isNotEmpty) {
+        blocks.add(currentBlock.trim());
+        currentBlock = line;
+      } else {
+        currentBlock += '\n$line';
+      }
+    }
+    if (currentBlock.isNotEmpty) {
+      blocks.add(currentBlock.trim());
+    }
 
-    print('DEBUG: Bracketed regex found ${matches.length} matches');
-
-    if (matches.isNotEmpty) {
-      for (final m in matches) {
-        addResult(m.group(1)!, m.group(2)!, m.group(3)!);
+    for (final block in blocks) {
+      // Each block should be like: [Question 1a ||| 4 points ||| feedback...]
+      
+      // Remove leading [ and trailing ]
+      String content = block;
+      if (content.startsWith('[')) content = content.substring(1);
+      if (content.endsWith(']')) content = content.substring(0, content.length - 1);
+      
+      // Split by |||
+      final parts = content.split('|||');
+      if (parts.length >= 3) {
+        final questionPart = parts[0].trim();
+        final pointsPart = parts[1].trim();
+        final feedbackPart = parts[2].trim();
+        
+        // Extract question number from "Question 1a" -> "1a"
+        final qMatch = RegExp(r'(?:Question\s+)?(\d+[a-zA-Z]?)').firstMatch(questionPart);
+        if (qMatch != null) {
+          final questionNum = qMatch.group(1) ?? '';
+          final question = 'Q$questionNum'.toUpperCase();
+          
+          // Extract points from "4 points" or just "4"
+          final pMatch = RegExp(r'(\d+)').firstMatch(pointsPart);
+          if (pMatch != null) {
+            final points = pMatch.group(1) ?? '0';
+            addResult(question, points, feedbackPart);
+          }
+        }
       }
     }
 
-    // Try unbracketed format for any missing questions (3 parts: Q# ||| points ||| feedback)
-    if (parsedQuestions.length < widget.frqCount) {
-      final altRegex = RegExp(
-        r"(Q\d+[a-zA-Z]?)\s*\|\|\|\s*([^|\n]+?)\|\|\|\s*([\s\S]*?)(?=(?:\n\s*Q|\n\n|\Z))",
-        multiLine: true,
-      );
-      final altMatches = altRegex.allMatches(text).toList();
-      print('DEBUG: Unbracketed regex found ${altMatches.length} matches');
-      for (final m in altMatches) {
-        addResult(m.group(1)!, m.group(2)!, m.group(3)!);
-      }
-    }
-
-    // Log any missing questions
+    // Parse any missing questions from AI response
     for (String question in widget.questionIds.take(widget.frqCount)) {
       if (!parsedQuestions.contains(question.toUpperCase())) {
-        print('DEBUG: Missing parsed question: $question');
         // Add missing result with 0 points and placeholder feedback
         final maxPoints = widget.questionPointValues[question] ?? 3;
-        final userAnswer = answers[question] ?? '';
+        
+        // Look up user answer with case-insensitive key matching
+        String userAnswer = '';
+        for (final key in answers.keys) {
+          if (key.toUpperCase() == question.toUpperCase()) {
+            userAnswer = answers[key] ?? '';
+            break;
+          }
+        }
+        if (userAnswer.isEmpty) {
+          userAnswer = answers[question] ?? '';
+        }
+        
         final isUnanswered = userAnswer.isEmpty;
         
         // Get canonical answer from stored answers
@@ -1384,7 +1434,6 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
       }
     }
 
-    print('DEBUG: Total parsed results: ${results.length} out of ${widget.frqCount}');
     return results;
   }
 
@@ -1401,7 +1450,8 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
       lastAIResponse = response;
 
       print('DEBUG: Raw AI response length: ${response.length} characters');
-      print('DEBUG: Raw AI response (first 500 chars): ${response.substring(0, response.length > 500 ? 500 : response.length)}');
+      print('DEBUG: Full raw AI response:\n========\n$response\n========');
+      print('DEBUG: Looking for pattern matching Q#a ||| points ||| feedback');
 
       final results = _parseGradingResponse(response);
 
@@ -1961,17 +2011,57 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
       promptContent.writeln(
           '${widget.graderPrompt} You MUST provide a response for each and every question.');
       promptContent.writeln(
-          '\n⚠️ CRITICAL GRADING RULES:');
+          '\n⚠️ CRITICAL GRADING INSTRUCTIONS:');
       promptContent.writeln(
-          '1. If student answer says "Not answered" or is empty → AWARD 0 POINTS for that question');
+          '🔍 STEP 1 - CHECK IF STUDENT ANSWERED:');
       promptContent.writeln(
-          '2. NEVER award full or partial credit for unanswered questions');
+          '   - READ the "User Answers" section below CAREFULLY');
       promptContent.writeln(
-          '3. Grade all ${widget.frqCount} questions - do not skip any');
+          '   - For EACH question, check if the answer field contains ANY text/code');
       promptContent.writeln(
-          '4. Use EXACT format: [question number ||| points awarded ||| detailed feedback]');
+          '   - "Not answered" or blank = 0 points');
       promptContent.writeln(
-          '5. DO NOT include the solution in your response - we have that already');
+          '   - ANY non-blank text/code = MUST BE GRADED (see step 2)');
+      promptContent.writeln(
+          '');
+      promptContent.writeln(
+          '📝 STEP 2 - GRADE PARTIAL ANSWERS:');
+      promptContent.writeln(
+          '   - If student provided ANY answer text, you MUST grade it');
+      promptContent.writeln(
+          '   - DO NOT say "student did not provide an answer" if there is visible text');
+      promptContent.writeln(
+          '   - Compare student answer against the rubric criteria');
+      promptContent.writeln(
+          '   - Award points for EACH criterion the student met (even partial):');
+      promptContent.writeln(
+          '     * Full answer matching rubric → award full points');
+      promptContent.writeln(
+          '     * Partial answer with correct concepts → award partial points');
+      promptContent.writeln(
+          '     * Answer shows understanding but has errors → award partial points');
+      promptContent.writeln(
+          '     * Minor syntax/spelling errors only → award most points');
+      promptContent.writeln(
+          '');
+      promptContent.writeln(
+          '🎯 STEP 3 - CALCULATE POINTS:');
+      promptContent.writeln(
+          '   - Count how many rubric criteria (numbered 1-9) the student demonstrated');
+      promptContent.writeln(
+          '   - Award points PROPORTIONALLY (e.g., student meets 6/9 criteria → 6 points)');
+      promptContent.writeln(
+          '   - NEVER award 0 if there is ANY substantive answer');
+      promptContent.writeln(
+          '');
+      promptContent.writeln(
+          '✏️ STEP 4 - FORMAT YOUR RESPONSE:');
+      promptContent.writeln(
+          '   - Use EXACT format: [question number ||| points awarded ||| detailed feedback]');
+      promptContent.writeln(
+          '   - Example: [Question: Q1a ||| 3 ||| Correct approach but minor implementation error]');
+      promptContent.writeln(
+          '   - Grade ALL ${widget.frqCount} questions - do not skip any');
       promptContent.writeln(
           '\nPoint values (NEVER exceed these maximums):');
       for (final entry in widget.questionPointValues.entries) {
@@ -1979,14 +2069,18 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
       }
       promptContent.writeln('\nFor each answer provide:');
       promptContent.writeln('1. Points awarded (0 to the maximum for that question)');
-      promptContent.writeln('2. Detailed feedback explaining what was correct/incorrect');
+      promptContent.writeln('2. Detailed feedback explaining:');
+      promptContent.writeln('   - What was correct');
+      promptContent.writeln('   - What was incorrect or missing');
+      promptContent.writeln('   - Why the student earned this score');
       promptContent.writeln('\nGrade EVERY question now:\n');
 
       // Add user answers to the prompt
       promptContent.writeln('=== User Answers ===');
       for (String question in widget.questionIds.take(widget.frqCount)) {
+        final answerText = answers[question] ?? "Not answered";
         promptContent.writeln('\nQuestion: $question');
-        promptContent.writeln('Answer: ${answers[question] ?? "Not answered"}');
+        promptContent.writeln('Answer: $answerText');
         promptContent.writeln('-------------------');
       }
 
@@ -1996,6 +2090,7 @@ class _FRQTextDisplayScreenState extends State<FRQTextDisplayScreen> {
       promptContent.writeln('=== End of Official Answers ===\n');
 
       // Send the content to QuestAI
+      print('Sending FRQ grading request to AI with ${answers.length} answer(s)');
       lastAIResponse = null;
       _chatBloc.add(ChatGenerationNewTextMessageEvent(
         inputMessage: promptContent.toString(),

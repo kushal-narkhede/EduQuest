@@ -69,15 +69,16 @@ import 'data/ap_world_history_chapters.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _loadEnvWithFallback();
-  final openRouterKey = dotenv.env['OPENROUTER_API_KEY'];
-  final openRouterMasked = (openRouterKey == null || openRouterKey.trim().isEmpty)
-      ? '<missing>'
-      : '${openRouterKey.trim().substring(0, openRouterKey.trim().length.clamp(0, 4))}***${openRouterKey.trim().substring((openRouterKey.trim().length - 4).clamp(0, openRouterKey.trim().length))}';
+      final openRouterKey = dotenv.env['OPENROUTER_API_KEY'];
+      final openRouterMasked = (openRouterKey == null || openRouterKey.trim().isEmpty)
+        ? '<missing>'
+        : '${openRouterKey.trim().substring(0, openRouterKey.trim().length.clamp(0, 4))}***${openRouterKey.trim().substring((openRouterKey.trim().length - 4).clamp(0, openRouterKey.trim().length))}';
   final finnhubKey = dotenv.env['FINNHUB_API_KEY'];
   final finnhubMasked = (finnhubKey == null || finnhubKey.trim().isEmpty)
       ? '<missing>'
       : '${finnhubKey.trim().substring(0, finnhubKey.trim().length.clamp(0, 4))}***${finnhubKey.trim().substring((finnhubKey.trim().length - 4).clamp(0, finnhubKey.trim().length))}';
   print('✓ OPENROUTER_API_KEY present: ${openRouterKey != null && openRouterKey.trim().isNotEmpty} ($openRouterMasked)');
+  print('[StartupEnv] dotenv keys: ${dotenv.env.keys.toList()}');
   print('✓ FINNHUB_API_KEY present: ${finnhubKey != null && finnhubKey.trim().isNotEmpty} ($finnhubMasked)');
   
   SystemChrome.setPreferredOrientations([
