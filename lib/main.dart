@@ -6096,6 +6096,7 @@ class _ProfileTabState extends State<ProfileTab>
     with AutomaticKeepAliveClientMixin {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   Map<String, dynamic>? _userStats;
+  bool _questPlusSparkle = true;
   File? _profileImage;
   // ignore: unused_field
   File? _userProfileImage; // Add profile image state
@@ -6393,6 +6394,75 @@ class _ProfileTabState extends State<ProfileTab>
                     ),
 
                     const SizedBox(height: 24),
+
+                    AnimatedContainer(
+                      width: double.infinity,
+                      duration: const Duration(milliseconds: 900),
+                      curve: Curves.easeInOut,
+                      onEnd: () {
+                        if (!mounted) return;
+                        setState(() {
+                          _questPlusSparkle = !_questPlusSparkle;
+                        });
+                      },
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFFFFD54F),
+                            Color(0xFFFFB300),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber
+                                .withOpacity(_questPlusSparkle ? 0.85 : 0.35),
+                            blurRadius: _questPlusSparkle ? 22 : 10,
+                            spreadRadius: _questPlusSparkle ? 2 : 0,
+                          ),
+                        ],
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.star,
+                                  color: Colors.white, size: 22),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Quest+',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.auto_awesome,
+                                color: Colors.white.withOpacity(
+                                    _questPlusSparkle ? 1.0 : 0.6),
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
 
                     // Stats Section
                     if (_userStats != null) ...[
