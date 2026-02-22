@@ -38,6 +38,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ChatBloc() : super(ChatInitial()) {
     on<ChatGenerationNewTextMessageEvent>(_handleChatGeneration);
     on<ChatClearHistoryEvent>(_handleChatClearHistory);
+    on<ChatAddLocalExchangeEvent>(_handleLocalExchange);
     _initializeSystemPrompt();
   }
 
@@ -151,6 +152,44 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       
       emit(ChatErrorState(message: friendly));
     }
+  }
+
+  /**
+   * Handles local, non-AI chat exchanges.
+   *
+   * This method appends a user message and a local assistant response
+   * without calling the AI API.
+   *
+   * @param event The local exchange event containing user and assistant text
+   * @param emit The emitter for state updates
+   */
+  void _handleLocalExchange(
+    ChatAddLocalExchangeEvent event,
+    Emitter<ChatState> emit,
+  ) {
+    if (messages.isEmpty && _systemPrompt.isNotEmpty) {
+      print('Prepending system prompt (length: ${_systemPrompt.length})');
+      messages.add(ChatMessageModel(
+        role: "user",
+        parts: [ChatPartModel(text: _systemPrompt)],
+      ));
+      messages.add(ChatMessageModel(
+        role: "model",
+        parts: [ChatPartModel(text: "Understood. I am QuestAI, ready to assist users with the EduQuest app.")],
+      ));
+      print('System prompt added to messages. Total messages: ${messages.length}');
+    }
+
+    messages.add(ChatMessageModel(
+      role: "user",
+      parts: [ChatPartModel(text: event.userMessage)],
+    ));
+    messages.add(ChatMessageModel(
+      role: "model",
+      parts: [ChatPartModel(text: event.assistantMessage)],
+    ));
+    generating = false;
+    emit(ChatSuccessState(messages: messages));
   }
 
   /**

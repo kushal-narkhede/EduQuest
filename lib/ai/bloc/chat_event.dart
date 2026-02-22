@@ -39,3 +39,30 @@ class ChatGenerationNewTextMessageEvent extends ChatEvent {
  * useful for starting fresh conversations or clearing sensitive information.
  */
 class ChatClearHistoryEvent extends ChatEvent {}
+
+/**
+ * Event for adding a local, non-AI exchange to the chat history.
+ *
+ * This event is used when a deterministic, offline response should be
+ * shown instead of calling the AI API.
+ *
+ * @param userMessage The user prompt to add to the chat history
+ * @param assistantMessage The local response to add to the chat history
+ */
+class ChatAddLocalExchangeEvent extends ChatEvent {
+  /** The user prompt to add to the chat history */
+  final String userMessage;
+  /** The local response to add to the chat history */
+  final String assistantMessage;
+
+  /**
+   * Creates a new ChatAddLocalExchangeEvent instance.
+   *
+   * @param userMessage The user prompt to add to the chat history
+   * @param assistantMessage The local response to add to the chat history
+   */
+  ChatAddLocalExchangeEvent({
+    required this.userMessage,
+    required this.assistantMessage,
+  });
+}

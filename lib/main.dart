@@ -7324,6 +7324,49 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   String? _selectedAnswer;
   bool _showAnswer = false;
   File? _userProfileImage;
+  final bool _useApCalcUnit1LocalAnswer = true;
+    final Map<String, String> _apCalcAbUnit1FallbackExplanations = {
+    'What is the limit of (x² - 4)/(x - 2) as x approaches 2?':
+      'This is an indeterminate form (0/0). Factor the numerator: (x² - 4) = (x + 2)(x - 2). Cancel (x - 2) from numerator and denominator to get (x + 2). As x approaches 2, this becomes 4.',
+    'What is the limit of sin(x)/x as x approaches 0?':
+      'This is a fundamental limit: lim(x→0) sin(x)/x = 1. This limit is often used in calculus and is the basis for the derivative of sin(x).',
+    'What is the limit of (1 + 1/x)^x as x approaches ∞?':
+      'This is the definition of e: lim(x→∞) (1 + 1/x)^x = e ≈ 2.718. This limit is fundamental in calculus and defines the natural number e.',
+    'What is the limit of (e^x - 1)/x as x approaches 0?':
+      'This is a fundamental limit: lim(x→0) (e^x - 1)/x = 1. This limit is often used in calculus and is the basis for the derivative of e^x.',
+    'What is the limit of (x² - 9)/(x - 3) as x approaches 3?':
+      'Factor the numerator: (x² - 9) = (x + 3)(x - 3). Cancel (x - 3) to get (x + 3). As x approaches 3, this becomes 6.',
+    'What is the limit of (√x - 2)/(x - 4) as x approaches 4?':
+      'Rationalize by multiplying numerator and denominator by (√x + 2). This gives (x - 4)/((x - 4)(√x + 2)) = 1/(√x + 2). As x approaches 4, this becomes 1/4.',
+    'What is the limit of (1 - cos(x))/x as x approaches 0?':
+      'Using L\'Hôpital\'s rule or trigonometric identities, lim(x→0) (1 - cos(x))/x = 0. This can be shown using the limit lim(x→0) sin²(x)/(x(1 + cos(x))) = 0.',
+    'A function f(x) is continuous at x = a if:':
+      'A function is continuous at x = a if three conditions are met: f(a) is defined, lim(x→a) f(x) exists, and lim(x→a) f(x) = f(a).',
+    'What is the limit of (x³ - 8)/(x - 2) as x approaches 2?':
+      'Factor using difference of cubes: x³ - 8 = (x - 2)(x² + 2x + 4). Cancel (x - 2) to get (x² + 2x + 4). As x approaches 2, this becomes 12.',
+    'What is the limit of (tan(x))/x as x approaches 0?':
+      'lim(x→0) tan(x)/x = lim(x→0) (sin(x)/x) · (1/cos(x)) = 1 · 1 = 1.',
+    'What is the limit of (ln(x + 1))/x as x approaches 0?':
+      'Using L\'Hôpital\'s rule: lim(x→0) (ln(x + 1))/x = lim(x→0) (1/(x + 1))/1 = 1.',
+    'What is the limit of (3^x - 1)/x as x approaches 0?':
+      'Using L\'Hôpital\'s rule: lim(x→0) (3^x - 1)/x = lim(x→0) (3^x · ln(3))/1 = ln(3).',
+    'What is the limit of (x² + 3x - 10)/(x - 2) as x approaches 2?':
+      'Factor: (x² + 3x - 10) = (x + 5)(x - 2). Cancel (x - 2) to get (x + 5). As x approaches 2, this becomes 7.',
+    'What is the limit of (√(x + 4) - 2)/x as x approaches 0?':
+      'Rationalize: multiply by (√(x + 4) + 2)/(√(x + 4) + 2) to get x/(x(√(x + 4) + 2)) = 1/(√(x + 4) + 2). As x approaches 0, this becomes 1/4.',
+    'What is the limit of (sin(3x))/x as x approaches 0?':
+      'lim(x→0) sin(3x)/x = 3 · lim(x→0) sin(3x)/(3x) = 3 · 1 = 3.',
+    'What is the limit of (1 - cos(2x))/x² as x approaches 0?':
+      'Using the identity 1 - cos(2x) = 2sin²(x), we get lim(x→0) 2sin²(x)/x² = 2 · (lim(x→0) sin(x)/x)² = 2.',
+    'What is the limit of (e^(2x) - 1)/x as x approaches 0?':
+      'Using L\'Hôpital\'s rule: lim(x→0) (e^(2x) - 1)/x = lim(x→0) (2e^(2x))/1 = 2.',
+    'What is the limit of (x - sin(x))/x³ as x approaches 0?':
+      'Using L\'Hôpital\'s rule three times or Taylor series expansion, lim(x→0) (x - sin(x))/x³ = 1/6.',
+    'What is the limit of (ln(x))/x as x approaches ∞?':
+      'Using L\'Hôpital\'s rule: lim(x→∞) (ln(x))/x = lim(x→∞) (1/x)/1 = 0.',
+    'What is the limit of (x²)/(e^x) as x approaches ∞?':
+      'Using L\'Hôpital\'s rule twice: lim(x→∞) x²/e^x = lim(x→∞) 2x/e^x = lim(x→∞) 2/e^x = 0.',
+    };
 
   // Derived flags
   bool get isRobotics {
@@ -9130,8 +9173,8 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   void _answerWithAI() {
     // Get current question data
     final currentQuestion = _questions[_currentQuestionIndex];
-    final questionText = currentQuestion['question_text'];
-    final options = currentQuestion['options'].split('|');
+    final questionText = currentQuestion['question_text']?.toString() ?? '';
+    final options = currentQuestion['options'].toString().split('|');
 
     // Create the prompt with question and options
     String prompt = "Question: $questionText\n\nOptions:\n";
@@ -9140,6 +9183,24 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
     }
     prompt +=
         "\nPlease help me understand this question and explain the correct answer.";
+
+    final studySetName = widget.studySet['name']?.toString() ?? '';
+    final isApCalcAb = studySetName.contains('AP Calculus AB');
+    final isUnit1 = studySetName.contains('Limits and Continuity') ||
+        studySetName.contains('Unit 1');
+    final fallbackExplanation = _apCalcAbUnit1FallbackExplanations[questionText];
+    String correctAnswer = currentQuestion['correct_answer']?.toString() ?? '';
+    if (correctAnswer.isEmpty) {
+      final correctIndex = currentQuestion['correct'] as int?;
+      if (correctIndex != null &&
+          correctIndex >= 0 &&
+          correctIndex < options.length) {
+        correctAnswer = options[correctIndex];
+      }
+    }
+    if (correctAnswer.isEmpty && options.isNotEmpty) {
+      correctAnswer = options.first;
+    }
 
     // Refresh profile image before showing chat
     _refreshUserProfileImage();
@@ -9153,7 +9214,17 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
     });
 
     // Send the message to the chat
-    _chatBloc.add(ChatGenerationNewTextMessageEvent(inputMessage: prompt));
+    if (_useApCalcUnit1LocalAnswer && isApCalcAb && isUnit1 && fallbackExplanation != null) {
+      final fallbackResponse =
+          'The correct answer is "$correctAnswer". '
+          'Explanation: $fallbackExplanation';
+      _chatBloc.add(ChatAddLocalExchangeEvent(
+        userMessage: prompt,
+        assistantMessage: fallbackResponse,
+      ));
+    } else {
+      _chatBloc.add(ChatGenerationNewTextMessageEvent(inputMessage: prompt));
+    }
 
     // Auto-scroll to bottom after a short delay to ensure the chat interface is rendered
     Future.delayed(const Duration(milliseconds: 100), () {

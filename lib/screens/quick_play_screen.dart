@@ -54,6 +54,7 @@ class _HomePageState extends State<HomePage> {
   Set<String> selectedSubjects = {}; // Support multiple subjects
   int numberOfQuestions = 5; // New variable for question count
   File? _userProfileImage; // Add profile image state
+  final bool _useAstronomyLocalFallback = true;
 
     String get _primarySubject =>
       selectedSubjects.isNotEmpty
@@ -1724,6 +1725,47 @@ class _HomePageState extends State<HomePage> {
     // Clear any previous questions and answers
     scienceQuestions.clear();
     answeredCorrectly.clear();
+
+    if (_useAstronomyLocalFallback && _primarySubject == 'Astronomy') {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        final subjectSamples = questions['Astronomy'] ?? [];
+        if (subjectSamples.isEmpty) {
+          setState(() {
+            isWaitingForQuestions = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No Astronomy questions available.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+
+        final shuffledSamples = List<Map<String, dynamic>>.from(subjectSamples);
+        shuffledSamples.shuffle();
+        final questionsToUse = [
+          numberOfQuestions,
+          5,
+          shuffledSamples.length,
+        ].reduce((a, b) => a < b ? a : b);
+        final finalQuestions = shuffledSamples.sublist(0, questionsToUse);
+
+        setState(() {
+          scienceQuestions = finalQuestions;
+          answeredCorrectly = List.filled(finalQuestions.length, false);
+          currentQuestionIndex = 0;
+          showAnswer = false;
+          selectedAnswer = null;
+          isWaitingForQuestions = false;
+          showQuizArea = true;
+          showScoreSummary = false;
+        });
+      });
+      return;
+    }
 
     String prompt = """Generate exactly $numberOfQuestions multiple choice questions covering the topics of: $subjectsList.
 Format each question exactly like this: [question text, option A, option B, option C, option D, correct answer]
